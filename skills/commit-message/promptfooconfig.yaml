@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "commit-message (skill-coverage) — does the skill produce a conventional, well-structured commit? no skill vs with skill"
+
+providers: file://../../evals/promptfoo.base.yaml
+
+prompts:
+  - {"id":"file://../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+
+defaultTest:
+  vars: {"skillPath":"skills/commit-message/SKILL.md"}
+  assert:
+    - type: llm-rubric
+      value: >-
+        The response is a single git commit message that follows
+        conventional-commits: a subject line of the form `<type>(<scope>):
+        <summary>` using a valid type (feat, fix, docs, refactor, etc.), in the
+        imperative mood, short and without a trailing period. If a body is
+        present it is separated by a blank line and explains WHY the change was
+        made (its effect or rationale), not merely restating WHAT file changed.
+        Pass only if it is usable as-is — not a generic explanation or a message
+        that describes the file instead of the behavior.
+      provider: file://../../evals/judge-primary.yaml
+    - type: llm-rubric
+      value: >-
+        The response is a single git commit message that follows
+        conventional-commits: a subject line of the form `<type>(<scope>):
+        <summary>` using a valid type (feat, fix, docs, refactor, etc.), in the
+        imperative mood, short and without a trailing period. If a body is
+        present it is separated by a blank line and explains WHY the change was
+        made (its effect or rationale), not merely restating WHAT file changed.
+        Pass only if it is usable as-is — not a generic explanation or a message
+        that describes the file instead of the behavior.
+      provider: file://../../evals/judge-secondary.yaml
+
+tests:
+  # Bug fix with a clear cause — treatment should pick `fix` and explain the why.
+  - description: "commit-message-bugfix-001"
+    vars: {"question":"Write a commit message for this change: the API client retried on every error including 4xx client errors, causing duplicate writes. I changed it to only retry on 5xx and network errors."}
+  # New feature — treatment should pick `feat` and keep the subject behavior-focused.
+  - description: "commit-message-feature-002"
+    vars: {"question":"Write a commit message: I added a --dry-run flag to the deploy script that prints the planned changes without applying them."}

@@ -1,0 +1,106 @@
+name: eval
+
+# Runs on every PR that touches prompts/skills/eval tooling:
+#   1. check  — offline lint of frontmatter + generated indexes (free, always).
+#   2. eval   — eval ONLY the changed prompts through a gateway started in CI,
+#               compare PR vs base, and post a score comment. ADVISORY: it does
+#               not block the merge (no required checks / branch protection right
+#               now). To re-enable hard gating, make eval-ci.js exit non-zero on
+#               structural failures and require these checks in branch protection.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   LITELLM_API_KEY      any strong "sk-..." string — in CI it's both the gateway
+#                        master key and the eval client key (fresh gateway per run)
+#   ANTHROPIC_API_KEY    runner + primary judge
+#   OPENAI_API_KEY       secondary judge + gpt runners
+
+on:
+  pull_request:
+    paths:
+      - "prompts/**"
+      - "skills/**"
+      - "reference/**"
+      - "rules/**"
+      - "evals/**"
+      - "scripts/**"
+      - "gateway/**"
+      - ".github/workflows/eval.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  eval:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to post/update the score comment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need the base branch for the diff + PR-vs-base eval
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Write .env from secrets
+        run: |
+          cat > .env <<EOF
+          LITELLM_BASE_URL=http://localhost:4000
+          LITELLM_API_KEY=${{ secrets.LITELLM_API_KEY }}
+          LITELLM_MASTER_KEY=${{ secrets.LITELLM_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          EOF
+
+      - name: Start gateway
+        run: |
+          docker compose --env-file .env -f gateway/docker-compose.yml up -d
+          echo "waiting for gateway..."
+          for i in $(seq 1 90); do
+            curl -sf http://localhost:4000/health/liveliness && { echo " up"; exit 0; }
+            sleep 2
+          done
+          echo "gateway did not become healthy"; docker compose -f gateway/docker-compose.yml logs litellm; exit 1
+
+      - name: Eval changed prompts (PR vs base)
+        id: eval
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: node scripts/eval-ci.js
+
+      - name: Post score comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- prompt-eval-report -->';
+            const body = fs.existsSync('eval-comment.md')
+              ? fs.readFileSync('eval-comment.md', 'utf8')
+              : marker + '\n_Eval did not produce a report (see the job log)._';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Stop gateway
+        if: always()
+        run: docker compose --env-file .env -f gateway/docker-compose.yml down -v

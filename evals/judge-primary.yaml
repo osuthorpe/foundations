@@ -1,0 +1,6 @@
+# Primary judge — grades llm-rubric assertions. Change the model here once and
+# every eval picks it up. Judge with a different model family than the runner
+# under test to avoid self-preference bias.
+id: litellm:chat:claude-opus-4-8
+config:
+  apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"

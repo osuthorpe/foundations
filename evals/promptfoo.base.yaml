@@ -1,0 +1,18 @@
+# Shared runner models — the subjects under test (the BYOM comparison matrix).
+# Every asset's promptfooconfig.yaml points its `providers:` at this file, so
+# adding a model here runs the whole suite against it. Non-Anthropic / BYOK
+# models work because all calls route through the LiteLLM gateway; configure it
+# in .env (LITELLM_BASE_URL + LITELLM_API_KEY). See evals/README.md.
+- id: litellm:chat:claude-sonnet-4-6
+  config:
+    apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
+- id: litellm:chat:gpt-5.5
+  config:
+    apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
+- id: litellm:chat:gpt-5.4-mini
+  config:
+    apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
+# Uncomment / add lines to test more models side by side:
+# - id: litellm:chat:gemini/gemini-2.5-pro
+#   config:
+#     apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"

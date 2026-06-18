@@ -1,0 +1,20 @@
+{
+  "name": "@osuthorpe/foundations",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "eval": "node scripts/eval.js",
+    "eval:view": "promptfoo view",
+    "prompts:index": "node scripts/build-index.js",
+    "assets:index": "node scripts/build-assets.js",
+    "index": "node scripts/build-index.js && node scripts/build-assets.js",
+    "check": "node scripts/check.js",
+    "prompts:check": "node scripts/check.js"
+  },
+  "devDependencies": {
+    "promptfoo": "^0.121.15"
+  },
+  "engines": {
+    "node": "^20.20.0 || >=22.22.0"
+  }
+}

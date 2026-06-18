@@ -1,0 +1,8 @@
+.DS_Store
+dist/
+node_modules/
+reports/eval/
+reports/ci/
+eval-comment.md
+.promptfoo/
+.env

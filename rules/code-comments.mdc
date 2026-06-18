@@ -1,0 +1,34 @@
+---
+name: code-comments
+description: Apply when writing or reviewing code comments — explains what to comment and what to leave out.
+consumers:
+  - cursor
+status: active
+alwaysApply: false
+---
+
+# Code comments
+
+Write comments that explain **why**, not **what**. The code already shows what
+it does; a comment earns its place by capturing intent, trade-offs, or
+constraints the reader can't recover from the code alone.
+
+## Do comment
+
+- Non-obvious intent: why this approach over the obvious one.
+- Constraints and gotchas: invariants, edge cases, ordering requirements,
+  workarounds for upstream bugs (link the issue).
+- Public API contracts: what callers may and may not rely on.
+
+## Don't comment
+
+- Narration of the next line ("increment the counter", "import the module").
+- Restating a well-named function or variable.
+- Commented-out code — delete it; version control remembers.
+- Changelog notes in code ("changed by X on date") — that's what git is for.
+
+## Style
+
+- Keep comments next to the code they describe, and update them in the same
+  change. A stale comment is worse than none.
+- Prefer a short, well-named function over a comment explaining a block.
