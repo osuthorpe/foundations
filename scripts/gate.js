@@ -1,6 +1,5 @@
 // Shared eval gate: turns noisy single scores into a defensible ship/no-ship
-// decision. Used by scripts/eval.js (local gate) and scripts/eval-ci.js (PR
-// report) so both judge an asset the same way.
+// decision, used by scripts/eval.js.
 //
 // The repo's promise is "a prompt/skill ships only when it clearly beats the
 // baseline." A single LLM-judge score can't carry that — the judges are noisy.

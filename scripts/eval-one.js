@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Re-run ONE asset and explain, per model, whether the prompt improved.
+// Re-run ONE skill and explain, per model, whether it improved.
 //
-//   make eval-one CONFIG=prompts/writing/summarize
-//   node scripts/eval-one.js prompts/writing/summarize [--no-cache]
+//   make eval-one CONFIG=skills/commit-message
+//   node scripts/eval-one.js skills/commit-message [--no-cache]
 //
 // It answers two questions in plain language:
-//   1. "Did my edit help?"  — this run vs the previous run of this asset.
-//   2. "Is the prompt worth it?" — the foundation column vs the no-prompt column.
+//   1. "Did my edit help?"  — this run vs the previous run of this skill.
+//   2. "Is the skill worth it?" — the with-skill column vs the no-skill column.
 //
 // Quality is scored 0-1 by the NEUTRAL judge (Opus) only — the gpt-5.5 judge is
 // biased toward gpt outputs, so it's excluded from the headline number. Pass
@@ -19,9 +19,8 @@ import path from "node:path";
 
 const PROMPTFOO = path.resolve("node_modules/.bin/promptfoo");
 const OUT_DIR = path.resolve("reports/eval");
-// Match the baseline column labels the configs use (no-prompt, naive, no-skill,
-// tool-baseline) — "naive" is the label, "legacy" the loader export.
-const BASELINE = /^(no-?prompt|no-?skill|without|naive|baseline|legacy|tool-?baseline)$/i;
+// Match the baseline column labels the skill configs use: no-skill, tool-baseline.
+const BASELINE = /^(no-?skill|without|tool-?baseline|baseline)$/i;
 const NEUTRAL = "judge-primary"; // Opus — not a candidate runner model, so unbiased
 const NOISE = 0.1; // quality changes smaller than this are treated as grading noise
 
@@ -29,7 +28,7 @@ const args = process.argv.slice(2);
 const spec = args.find((a) => !a.startsWith("-"));
 const passthrough = args.filter((a) => a.startsWith("-"));
 if (!spec) {
-  console.error("Usage: make eval-one CONFIG=prompts/<area>/<name>");
+  console.error("Usage: make eval-one CONFIG=skills/<name>");
   process.exit(1);
 }
 
@@ -39,7 +38,6 @@ function resolveConfig(s) {
   const tries = [
     clean,
     clean.endsWith("promptfooconfig.yaml") ? clean : path.join(clean, "promptfooconfig.yaml"),
-    path.join("prompts", clean, "promptfooconfig.yaml"),
     path.join("skills", clean, "promptfooconfig.yaml"),
   ];
   return tries.find((t) => fs.existsSync(t));
@@ -47,7 +45,7 @@ function resolveConfig(s) {
 const cfg = resolveConfig(spec);
 if (!cfg) {
   console.error(`No promptfooconfig.yaml found for "${spec}".`);
-  console.error(`Try a path like: prompts/writing/summarize`);
+  console.error(`Try a path like: skills/commit-message`);
   process.exit(1);
 }
 

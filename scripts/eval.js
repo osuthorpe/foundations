@@ -36,20 +36,17 @@ import { THRESHOLDS, evaluateGate, stdev, summarizeGate } from "./gate.js";
 // we only set a default when nothing has. .promptfoo/ is gitignored.
 process.env.PROMPTFOO_CONFIG_DIR ||= path.resolve(".promptfoo");
 
-const ROOTS = ["prompts", "skills"];
+const ROOTS = ["skills"];
 const CONFIG = "promptfooconfig.yaml";
 const PROMPTFOO = path.resolve("node_modules/.bin/promptfoo");
 const REPORT_DIR = path.resolve("reports/eval");
 const OUT_DIR = path.join(REPORT_DIR, "runs"); // per-run JSON (gitignored, wiped each run)
 const REPORT_MD = path.join(REPORT_DIR, "REPORT.md"); // committed markdown snapshot
 const HISTORY = path.join(REPORT_DIR, "history.jsonl"); // committed run-over-run ledger
-// Labels for the "before" column (expected to fall short); everything else is
-// treated as the shipped/candidate column that the leaderboard ranks on.
-// The "before" columns, expected to fall short. Must match the labels the
-// configs actually use (prompts/.../promptfooconfig.yaml): no-prompt, naive,
-// no-skill, tool-baseline. ("legacy" is the loader export name; "naive" is its
-// column label — both listed so either spelling is caught.)
-const BASELINE = /^(no-?prompt|no-?skill|without|naive|baseline|legacy|tool-?baseline)$/i;
+// The "before" column labels (expected to fall short); everything else is the
+// with-skill / shipped column the leaderboard and gate rank on. Matches the
+// labels the skill configs use: no-skill and tool-baseline.
+const BASELINE = /^(no-?skill|without|tool-?baseline|baseline)$/i;
 const NEUTRAL = "judge-primary"; // Opus — the unbiased judge we score the heatmap on
 
 function findConfigs(dir, out = []) {
@@ -226,12 +223,12 @@ function heatmap({ assets, models: modelIds }) {
   const NAMEW = 32;
   const COLW = 14;
   const line = "═".repeat(NAMEW + COLW * Math.max(1, models.length));
-  console.log(`\n${line}\nPROMPT × MODEL HEATMAP — latest run · foundation prompt · quality 0–1 (neutral Opus judge)\n${line}`);
+  console.log(`\n${line}\nSKILL × MODEL HEATMAP — latest run · with-skill column · quality 0–1 (neutral Opus judge)\n${line}`);
   if (!assets.length) {
     console.log("(no results in reports/eval/runs/ — run `make eval` first)");
     return;
   }
-  console.log(pad("prompt", NAMEW) + models.map((m) => pad(m, COLW)).join(""));
+  console.log(pad("skill", NAMEW) + models.map((m) => pad(m, COLW)).join(""));
   for (const row of assets) {
     const byShort = Object.fromEntries(Object.entries(row.models).map(([k, v]) => [shortModel(k), v]));
     console.log(pad(trunc(row.name, NAMEW - 1), NAMEW) + models.map((m) => cell(byShort[m], COLW)).join(""));
@@ -268,7 +265,7 @@ function aggregateModels({ assets }) {
 
 function leaderboard(data) {
   const rows = aggregateModels(data);
-  console.log(`\n${"=".repeat(72)}\nMODEL LEADERBOARD — foundation prompt only, across all assets\n(bare/legacy columns are designed to fail and are NOT counted here)\n${"=".repeat(72)}`);
+  console.log(`\n${"=".repeat(72)}\nMODEL LEADERBOARD — with-skill column only, across all skills\n(no-skill columns are designed to fail and are NOT counted here)\n${"=".repeat(72)}`);
   if (!rows.length) {
     console.log("(no scored results found in reports/eval/runs/)");
     return;
@@ -281,7 +278,7 @@ function leaderboard(data) {
   }
   console.log(
     "\nNotes:\n" +
-      "  • pass% / cells count the FOUNDATION column only — the bare and legacy\n" +
+      "  • pass% / cells count the WITH-SKILL column only — the no-skill\n" +
       "    columns (which are supposed to fail) are excluded. promptfoo's own\n" +
       "    per-run 'X passed (Y%)' line counts every column, so ignore it here.\n" +
       "  • primary is mean±sd over all samples (EVAL_SAMPLES); a big ±sd means a\n" +
@@ -298,7 +295,7 @@ const GATE_GLYPH = { PASS: `${C.G}PASS${C.RST}`, WARN: `${C.Y}WARN${C.RST}`, FAI
 
 function gateSection(verdicts) {
   const t = THRESHOLDS;
-  console.log(`\n${"=".repeat(72)}\nEVAL GATE — foundation must clear quality ≥ ${t.minQuality} and beat the\nstrongest baseline by ≥ ${t.minMargin} (neutral Opus judge, ${t.samples} sample(s)/cell)\n${"=".repeat(72)}`);
+  console.log(`\n${"=".repeat(72)}\nEVAL GATE — the with-skill column must clear quality ≥ ${t.minQuality} and beat\nthe no-skill baseline by ≥ ${t.minMargin} (neutral Opus judge, ${t.samples} sample(s)/cell)\n${"=".repeat(72)}`);
   if (!verdicts.length) {
     console.log("(no assets evaluated)");
     return;
@@ -348,8 +345,8 @@ function writeReport(data, verdicts) {
   // Gate first — the ship/no-ship decision is the headline.
   const { counts } = summarizeGate(verdicts);
   out.push("## Gate\n");
-  out.push(`Foundation must clear quality ≥ **${t.minQuality}** and beat its strongest baseline by ≥ **${t.minMargin}** (neutral Opus judge). ${counts.PASS} pass · ${counts.WARN} warn · ${counts.FAIL} fail · ${counts.NODATA} no-data.\n`);
-  out.push("| asset | verdict | quality (mean±sd) | vs baseline | notes |");
+  out.push(`The with-skill column must clear quality ≥ **${t.minQuality}** and beat the no-skill baseline by ≥ **${t.minMargin}** (neutral Opus judge). ${counts.PASS} pass · ${counts.WARN} warn · ${counts.FAIL} fail · ${counts.NODATA} no-data.\n`);
+  out.push("| skill | verdict | quality (mean±sd) | vs baseline | notes |");
   out.push("|---|---|---|---|---|");
   for (const v of verdicts) {
     let quality = "·";
@@ -364,10 +361,10 @@ function writeReport(data, verdicts) {
   }
   out.push("");
 
-  // Heatmap: prompt × model, neutral (Opus) judge quality on the foundation column.
-  out.push("## Prompt × model heatmap\n");
-  out.push("Foundation prompt only, neutral Opus judge. Quality is 0–1; `n/n` is a pass rate (asset has no rubric); `✗` marks a failed check (e.g. invalid JSON); `·` is no data.\n");
-  out.push(`| prompt | ${models.join(" | ")} |`);
+  // Heatmap: skill × model, neutral (Opus) judge quality on the with-skill column.
+  out.push("## Skill × model heatmap\n");
+  out.push("With-skill column, neutral Opus judge. Quality is 0–1; `n/n` is a pass rate (no rubric); `✗` marks a failed check (e.g. invalid JSON); `·` is no data.\n");
+  out.push(`| skill | ${models.join(" | ")} |`);
   out.push(`|---|${models.map(() => "---").join("|")}|`);
   for (const row of assets) {
     const byShort = Object.fromEntries(Object.entries(row.models).map(([k, v]) => [shortModel(k), v]));
@@ -375,9 +372,9 @@ function writeReport(data, verdicts) {
   }
   out.push("");
 
-  // Leaderboard: per-model aggregate across all assets (foundation column only).
+  // Leaderboard: per-model aggregate across all skills (with-skill column only).
   out.push("## Model leaderboard\n");
-  out.push("Foundation prompt only, aggregated across all assets. The bare/legacy columns are designed to fail and are excluded. `primary` is mean±sd over all samples — a large ±sd means a noisy cell. Judge means use different scales — compare models *within* a column, not across.\n");
+  out.push("With-skill column, aggregated across all skills. The no-skill columns are designed to fail and are excluded. `primary` is mean±sd over all samples — a large ±sd means a noisy cell. Judge means use different scales — compare models *within* a column, not across.\n");
   out.push("| model | cells | pass% | primary (mean±sd) | secondary (mean) |");
   out.push("|---|---|---|---|---|");
   const fmt = (v) => (v == null ? "–" : v.toFixed(2));

@@ -6,18 +6,12 @@ A skill is a self-contained folder of instructions written **for the AI**, plus 
 
 ## How skills are used
 
-Skills are consumed **à la carte** — take only the ones you want, not the whole repo:
+Skills are taken **à la carte** — grab the one you want, not the whole repo:
 
-- **Claude Code / Desktop / project:** copy a skill's folder into `~/.claude/skills/<name>/` (personal) or `.claude/skills/<name>/` (a project). It self-activates when a task matches its description.
-- **Claude Desktop / claude.ai:** build its uploadable zip with `make package` (every skill whose `consumers` includes `desktop-zip`).
-- **MCP server / agent:** served as a resource when `consumers` includes `mcp`.
+- **Claude Code:** copy the skill's folder into `~/.claude/skills/<name>/` (personal) or `.claude/skills/<name>/` (a project). It self-activates when a task matches its description.
+- **Claude Desktop / claude.ai:** zip the skill's folder and upload it under Settings → Capabilities → Skills.
 
-| Consumer | Reaches |
-| --- | --- |
-| `desktop-zip` | the Claude Desktop / claude.ai skill zip (`make package`) |
-| `mcp` | an MCP server / agent that serves skills as resources |
-
-The `consumers` list is the machine-readable record of where each skill goes; see the generated [ASSETS.md](../ASSETS.md) for the full distribution map.
+Each skill is self-contained, so its folder is the unit you copy.
 
 ## Anatomy
 
@@ -38,7 +32,6 @@ skills/<category>/<name>/            # grouped (e.g. product-management/ai-trust
 | --- | --- |
 | `name` | Must equal the **leaf** folder name; unique across categories |
 | `description` | The trigger — *what* it does and *when* to use it (the line the AI always sees) |
-| `consumers` | Where it ships: `desktop-zip`, `mcp` (one or more) |
 | `status` | `proposed` / `active` / `deprecated` |
 
 ## What makes a good skill
@@ -53,9 +46,8 @@ skills/<category>/<name>/            # grouped (e.g. product-management/ai-trust
 ## Add a skill
 
 1. Create `skills/<name>/SKILL.md` (or `skills/<category>/<name>/SKILL.md`, uppercase) with the frontmatter above and any data it needs, plus a `README.md`.
-2. Set `consumers` — `[desktop-zip]` is the common default; add `mcp` if an agent serves it.
-3. Add a `promptfooconfig.yaml` that proves the skill earns its place. Knowledge skills are graded with and without the skill; tool-routing skills are checked for picking the right tool and arguments. See [../evals/README.md](../evals/README.md). (A grouped skill sits one level deeper, so its config references shared eval files as `file://../../../evals/...`.)
-4. Run `npm run index` (refreshes [ASSETS.md](../ASSETS.md)) then `npm run check`.
+2. Add a `promptfooconfig.yaml` that proves the skill earns its place. Knowledge skills are graded with and without the skill; tool-routing skills are checked for picking the right tool and arguments. See [../evals/README.md](../evals/README.md). (A grouped skill sits one level deeper, so its config references shared eval files as `file://../../../evals/...`.)
+3. Run `npm run check`.
 
 A good candidate is expertise you repeat: a convention you keep restating, which tool to use for a job, what makes a strong result. If you have pasted the same context into the AI twice, capture it as a skill.
 

@@ -1,8 +1,6 @@
 ---
 name: semver
 description: Semantic Versioning 2.0.0 — what each version part means and how precedence is computed.
-consumers:
-  - context-injection
 status: active
 ---
 

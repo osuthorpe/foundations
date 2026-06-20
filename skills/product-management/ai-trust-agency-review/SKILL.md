@@ -1,8 +1,6 @@
 ---
 name: ai-trust-agency-review
 description: Review AI product ideas, PRDs, feature specs, launch plans, agent workflows, trust claims, or blog drafts for user agency, control, proof, recourse, displacement risk, autonomy level, failure handling, and trust release readiness. Use when the user asks for an AI trust review, agency review, release gate, product critique, PRD critique, or whether an AI feature should ship.
-consumers:
-  - desktop-zip
 status: proposed
 ---
 

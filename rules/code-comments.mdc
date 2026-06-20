@@ -1,8 +1,6 @@
 ---
 name: code-comments
 description: Apply when writing or reviewing code comments — explains what to comment and what to leave out.
-consumers:
-  - cursor
 status: active
 alwaysApply: false
 ---

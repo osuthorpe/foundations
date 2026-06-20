@@ -4,11 +4,10 @@ You don't need to be a programmer to make these AI assets better. If you know wh
 
 ## What is all this, in plain English?
 
-- A **skill** is a cheat sheet we give the AI — a document that teaches it how to do something well (how to write a commit message, how to structure a piece of writing, …).
-- A **prompt** is a reusable, fill-in-the-blank request ("summarize this text", "rewrite this paragraph").
-- An **eval** is a quiz that proves the cheat sheet or prompt actually helps. Each quiz question asks the AI the same thing a few ways — *without* the prompt, with a *naive* prompt, and with *our* prompt — and a second AI (the "judge") checks that ours is meaningfully better. If it isn't, the test fails, and that's the point: it tells us our version needs work.
+- A **skill** is a cheat sheet we give the AI — a document that teaches it how to do something well (how to write a commit message, how to review an AI product for trust, …).
+- An **eval** is a quiz that proves the cheat sheet actually helps. Each quiz question asks the AI the same thing two ways — *without* the skill and *with* it — and a second AI (the "judge") checks that the with-skill answer is meaningfully better. If it isn't, the test fails, and that's the point: it tells us the skill needs work.
 
-We run these quizzes with a standard tool called **promptfoo**. The quiz questions live in a file named `promptfooconfig.yaml` inside each skill or prompt folder.
+We run these quizzes with a standard tool called **promptfoo**. The quiz questions live in a file named `promptfooconfig.yaml` inside each skill folder.
 
 Your superpower: **you know what a good answer looks like.** Writing those examples down is the most valuable contribution anyone can make here.
 
@@ -55,9 +54,9 @@ Three parts, all just text:
 
 ## Add your own question
 
-1. Find the `tests:` section in the file for the skill or prompt you care about.
+1. Find the `tests:` section in the file for the skill you care about.
 2. Copy the last `- description:` block (the `#` note line and the two lines under it) and paste it below, keeping the same indentation.
-3. Change the `description` to a new unique name, and change the question inside `vars`. For a prompt with several inputs, fill in each one — copy the shape from the entry above; the input names (like `content`) stay the same.
+3. Change the `description` to a new unique name, and change the question inside `vars` to the new thing you'd ask the AI.
 4. Save the file.
 5. Check you didn't break the format — run (swap in your file's path):
 
@@ -67,7 +66,7 @@ Three parts, all just text:
 
    `Configuration is valid.` means you're good. If it complains, it usually points at a missing quote or a line that's indented wrong. Fix and re-run.
 
-**What makes a great question:** something where generic AI knowledge isn't enough — a case where the cheat sheet or prompt should clearly change the answer.
+**What makes a great question:** something where generic AI knowledge isn't enough — a case where the skill should clearly change the answer.
 
 ## Saving and sharing your work
 
@@ -76,7 +75,7 @@ Open GitHub Desktop. It will show the file you changed. Write a one-line summary
 ## Things to leave alone (for now)
 
 - Files ending in `.cjs` — that's the machinery that builds the quizzes.
-- The `providers:`, `prompts:`, and `defaultTest:` sections at the top of a config — they wire up which models run and how answers are graded. The `tests:` section is the part you edit.
+- The `providers:`, `prompts:`, and `defaultTest:` sections at the top of a config — they wire up which models run and how answers are graded (the `prompts:` block here just names the two comparison columns, no/with skill). The `tests:` section is the part you edit.
 - Actually *running* the full quiz (`npm run eval`) calls the AI and needs an access key. Then `npm run eval:view` opens a web page where you can read every answer side by side with a ✓ or ✗ and the judge's reasoning.
 
 ## Mini-glossary
@@ -86,10 +85,9 @@ Open GitHub Desktop. It will show the file you changed. Write a one-line summary
 | Eval | A quiz that proves a cheat sheet or prompt actually helps the AI |
 | Case / test | One question in the quiz (a `- description:` entry) |
 | Skill | A cheat sheet teaching the AI how to do something |
-| Prompt | A reusable, structured request |
-| Variant | One column of the comparison — no prompt / naive / foundation (or no skill / with skill) |
+| Variant | One column of the comparison — no-skill vs with-skill |
 | Judge | A second AI that scores the answers against the rubric |
-| Rubric | The point-by-point definition of a good answer (`rubric.txt`) |
+| Rubric | The point-by-point definition of a good answer (in the config's `llm-rubric`) |
 | promptfoo | The standard tool that runs the quizzes |
 | YAML | The indent-based file format the quizzes are written in |
 

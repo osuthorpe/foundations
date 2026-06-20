@@ -22,7 +22,6 @@ A rule's frontmatter carries the foundation fields **and** any Cursor-native key
 | --- | --- |
 | `name` | Must equal the file name (without extension) |
 | `description` | What the rule covers and *when* it applies — Cursor uses this to decide whether to attach the rule |
-| `consumers` | `cursor` — drives [ASSETS.md](../ASSETS.md) |
 | `status` | `proposed` / `active` / `deprecated` |
 | `globs` | *(Cursor, optional)* file patterns that auto-attach the rule, e.g. `src/**/*.ts` |
 | `alwaysApply` | *(Cursor, optional)* `true` to attach the rule in every context |
@@ -31,7 +30,7 @@ A rule's frontmatter carries the foundation fields **and** any Cursor-native key
 
 ## Using a rule in a project
 
-A rule here is the source of truth. To use it in a project, copy or symlink the file into that project's `.cursor/rules/` directory (or reference it from an `AGENTS.md`). Edit it here; re-sync consumers when it changes.
+A rule here is the source of truth. To use it in a project, copy or symlink the file into that project's `.cursor/rules/` directory (or reference it from an `AGENTS.md`). Edit it here; re-sync the copy when it changes.
 
 ## What makes a good rule
 
@@ -43,4 +42,4 @@ A rule here is the source of truth. To use it in a project, copy or symlink the 
 ## Add a rule
 
 1. Create `rules/<name>.mdc` with the frontmatter above and the rule body.
-2. Run `npm run index` (refreshes [ASSETS.md](../ASSETS.md)) then `npm run check`.
+2. Run `npm run check`.
