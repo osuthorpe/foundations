@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "human-grade-writing (skill-coverage) — does the skill rewrite synthetic AI prose into specific, authorial writing without fabricating? no skill vs with skill"
+
+providers: file://../../../evals/promptfoo.base.yaml
+
+prompts:
+  - {"id":"file://../../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+
+defaultTest:
+  vars: {"skillPath":"skills/writing/human-grade-writing/SKILL.md"}
+  assert:
+    - type: llm-rubric
+      value: >-
+        The response rewrites the draft into specific, authorial, human-grade
+        prose. Pass only if it: (1) removes synthetic AI patterns — generic
+        openers, three-part symmetry, setup-reveal transitions, "ultimately"
+        closings, reflexive hedging, and inspirational filler; (2) makes a clear,
+        specific claim using concrete nouns rather than abstractions; (3) varies
+        sentence length and uses plain transitions instead of uniform,
+        over-polished cadence; and (4) invents NO personal anecdotes,
+        credentials, quotes, statistics, or examples, does not claim the text is
+        human-written, and does not optimize for evading AI detectors. Fail if
+        the rewrite is still generic or synthetic, fabricates personal
+        experience or data, or only comments without producing the rewrite.
+      provider: file://../../../evals/judge-primary.yaml
+    - type: llm-rubric
+      value: >-
+        The response rewrites the draft into specific, authorial, human-grade
+        prose. Pass only if it: (1) removes synthetic AI patterns — generic
+        openers, three-part symmetry, setup-reveal transitions, "ultimately"
+        closings, reflexive hedging, and inspirational filler; (2) makes a clear,
+        specific claim using concrete nouns rather than abstractions; (3) varies
+        sentence length and uses plain transitions instead of uniform,
+        over-polished cadence; and (4) invents NO personal anecdotes,
+        credentials, quotes, statistics, or examples, does not claim the text is
+        human-written, and does not optimize for evading AI detectors. Fail if
+        the rewrite is still generic or synthetic, fabricates personal
+        experience or data, or only comments without producing the rewrite.
+      provider: file://../../../evals/judge-secondary.yaml
+
+tests:
+  # Classic synthetic LinkedIn cadence: the rewrite should sound authored and
+  # specific without inventing a backstory.
+  - description: "human-grade-writing-linkedin-001"
+    vars: {"question":"Make this sound like a person with judgment wrote it, without inventing any facts about me:\n\n\"In today's rapidly evolving landscape, leadership is more important than ever. It's not about having all the answers — it's about asking the right questions. Here's the thing: great leaders listen. They empower their teams. They lead with empathy. Ultimately, the best leaders aren't born, they're made. What do you think?\""}
+  # Diagnose-then-rewrite request: the answer should name the AI tells and then
+  # deliver a grounded rewrite, with no fabricated specifics.
+  - description: "human-grade-writing-diagnose-rewrite-002"
+    vars: {"question":"Diagnose why this sounds AI-generated, then rewrite it. Do not make up any statistics or examples I didn't give you:\n\n\"Remote work has fundamentally transformed the modern workplace. Studies show that flexibility boosts productivity. By leveraging cutting-edge collaboration tools, teams can unlock new levels of efficiency. In conclusion, the future of work is here, and it's more exciting than ever.\""}

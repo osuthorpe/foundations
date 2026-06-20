@@ -1,6 +1,6 @@
 # AI Trust and Agency Workbook
 
-Use this workbook before an AI feature moves from idea to build. The goal is simple: make the team's trust claims concrete enough to test.
+Use this workbook before an AI feature moves from idea to build. It makes the team's trust claims concrete enough to test.
 
 An AI feature earns trust when users keep meaningful control, can see enough evidence to understand important outputs, and have a practical recovery path when the system gets something wrong.
 
@@ -82,7 +82,7 @@ Then answer five agency questions:
 4. Can the user reject the AI without penalty?
 5. Can the user recover if the AI causes harm?
 
-If the answer is no, the feature may still be useful, but it should be treated as higher risk.
+If the answer to any of these is no, the feature may still be useful, but it should be treated as higher risk.
 
 ## 4. One-Page Agency Brief
 
@@ -117,7 +117,7 @@ Release condition:
 What must be true before this ships?
 ```
 
-Here is the kind of answer that would make me trust the review.
+A strong brief reads like this:
 
 ```txt
 Feature:
@@ -209,7 +209,7 @@ For employees, add:
 - Will I be trained for the new version of the work?
 - Will I still own the judgment that defines my profession?
 
-If the company cannot answer those questions, employees will answer them themselves. Usually pessimistically.
+If the company cannot answer those questions, employees will answer them themselves, usually pessimistically.
 
 ## 8. Grounded Output
 
@@ -229,7 +229,7 @@ Hard refusal when evidence is weak:
 Human approval step:
 ```
 
-Do not make users forensic auditors for every answer. Verification should be proportional to risk.
+Do not turn users into forensic auditors for every answer. Verification should be proportional to risk.
 
 ## 9. Control Surface
 
@@ -249,7 +249,7 @@ Minimum controls usually include:
 
 A control that technically exists but is buried, unclear, or irreversible does not create trust.
 
-## 10. Failure And Recourse
+## 10. Failure and Recourse
 
 Write the failure playbook before the feature ships.
 

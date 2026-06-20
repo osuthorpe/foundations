@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "blog-editing-pass (skill-coverage) — does the skill turn a hype-filled AI draft into a tightened, product-grounded edit? no skill vs with skill"
+
+providers: file://../../../evals/promptfoo.base.yaml
+
+prompts:
+  - {"id":"file://../../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+
+defaultTest:
+  vars: {"skillPath":"skills/writing/blog-editing-pass/SKILL.md"}
+  assert:
+    - type: llm-rubric
+      value: >-
+        The response is an actual edited version of the draft (an edit, not a
+        critique alone). Pass only if it: (1) cuts throat-clearing, hype, and
+        filler — openers like "In today's world", qualifiers like "It's worth
+        noting", and emphatic clichés like "moves the needle" or "the real
+        unlock"; (2) tightens sentences and varies rhythm while keeping a plain,
+        direct, single-voice tone; (3) pushes vague claims toward concrete AI
+        product substance — a decision, behavior, metric, permission, control,
+        eval, or tradeoff — rather than leaving generic "AI transforms work"
+        language; and (4) preserves the author's argument and invents no new
+        facts, statistics, citations, or examples. Fail if it is generic praise,
+        a light proofread that leaves the hype intact, a pure critique with no
+        rewrite, or if it adds promotional language.
+      provider: file://../../../evals/judge-primary.yaml
+    - type: llm-rubric
+      value: >-
+        The response is an actual edited version of the draft (an edit, not a
+        critique alone). Pass only if it: (1) cuts throat-clearing, hype, and
+        filler — openers like "In today's world", qualifiers like "It's worth
+        noting", and emphatic clichés like "moves the needle" or "the real
+        unlock"; (2) tightens sentences and varies rhythm while keeping a plain,
+        direct, single-voice tone; (3) pushes vague claims toward concrete AI
+        product substance — a decision, behavior, metric, permission, control,
+        eval, or tradeoff — rather than leaving generic "AI transforms work"
+        language; and (4) preserves the author's argument and invents no new
+        facts, statistics, citations, or examples. Fail if it is generic praise,
+        a light proofread that leaves the hype intact, a pure critique with no
+        rewrite, or if it adds promotional language.
+      provider: file://../../../evals/judge-secondary.yaml
+
+tests:
+  # Hype-filled opener with banned phrases: the edit should strip the filler and
+  # ground the claim in real product behavior.
+  - description: "blog-editing-pass-hype-opener-001"
+    vars: {"question":"Do an editing pass on this blog opener:\n\n\"In today's fast-paced world, AI is fundamentally transforming everything about how we work. It's worth noting that our new assistant leverages cutting-edge artificial intelligence to revolutionize team productivity. At the end of the day, this is a game-changer that truly moves the needle. We're incredibly excited to empower users to unlock their full potential.\""}
+  # Vague AI-feature paragraph with no product specifics: a publication pass
+  # should force decisions, controls, or metrics into the prose.
+  - description: "blog-editing-pass-vague-feature-002"
+    vars: {"question":"Publication pass on this paragraph from a product essay:\n\nWe believe AI should help people, not replace them. Our new summarization feature is designed to make work easier and give users more time back. It's powerful yet simple, and it puts the user in control. We think it represents the future of how teams will collaborate with AI going forward.\nMake it ready to publish."}
