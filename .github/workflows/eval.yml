@@ -3,10 +3,12 @@ name: eval
 # Runs on every PR that touches prompts/skills/eval tooling:
 #   1. check  — offline lint of frontmatter + generated indexes (free, always).
 #   2. eval   — eval ONLY the changed prompts through a gateway started in CI,
-#               compare PR vs base, and post a score comment. ADVISORY: it does
-#               not block the merge (no required checks / branch protection right
-#               now). To re-enable hard gating, make eval-ci.js exit non-zero on
-#               structural failures and require these checks in branch protection.
+#               compare PR vs base, and post a score comment carrying the sampled
+#               ship-gate verdict per asset (quality + margin; see scripts/gate.js).
+#               ADVISORY: it does not block the merge (no required checks /
+#               branch protection right now). To turn the gate into a hard block,
+#               make eval-ci.js exit non-zero when a verdict is FAIL and require
+#               this check in branch protection.
 #
 # Required repo secrets (Settings → Secrets and variables → Actions):
 #   LITELLM_API_KEY      any strong "sk-..." string — in CI it's both the gateway

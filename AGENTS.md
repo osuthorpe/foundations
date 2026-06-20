@@ -27,7 +27,8 @@ Human docs live in each folder's `README.md` (start at [README.md](README.md)). 
 - **Don't add tools here.** Tools (code that acts on live systems) live in the product that runs the agent — the codebase with the credentials and access. This repo only teaches the AI how to use them.
 - **Don't let the [Makefile](Makefile) fall behind.** It is the de facto task runner. Any core change to how work is run here — a new script, a renamed npm command, a new build/generation/test step — must add or update the matching `make` target in the same PR.
 - **Don't let a skill reach outside its folder.** Reference data by relative path so the folder travels as a unit.
-- **Don't merge a prompt or skill without an eval that shows it beats a baseline.**
+- **Don't nest skills in category folders.** Skills are flat: `skills/<name>/SKILL.md`. The Claude Code loader and `scripts/check.js` only scan one level under `skills/`, so a skill at `skills/<category>/<name>/SKILL.md` is silently invisible — not loaded, not checked, not evaluated. (Prompts may nest under an `<area>/`; skills may not.)
+- **Don't merge a prompt or skill without an eval that shows it beats a baseline.** The eval gate (`scripts/gate.js`) makes this concrete: the foundation column must clear `EVAL_MIN_QUALITY` and beat its strongest baseline by `EVAL_MIN_MARGIN` on the neutral judge, sampled `EVAL_SAMPLES` times. `make eval` exits non-zero on a gate FAIL.
 
 ## Conventions
 
@@ -91,5 +92,5 @@ Evals route through a LiteLLM gateway — set `LITELLM_BASE_URL` and `LITELLM_AP
 
 - `make check` passes (0 errors).
 - `make index` leaves `prompts/INDEX.md` and `ASSETS.md` unchanged (i.e. they're fresh).
-- The new/changed prompt or skill's eval passes.
+- The new/changed prompt or skill's eval **passes the gate** (`make eval` exits 0 — quality + margin clear the thresholds; see [evals/README.md](evals/README.md#sampling--the-ship-gate)).
 - One asset per PR, with its eval in the same PR.

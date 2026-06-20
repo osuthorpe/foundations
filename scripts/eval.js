@@ -29,6 +29,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { THRESHOLDS, evaluateGate, stdev, summarizeGate } from "./gate.js";
+
 // Keep promptfoo's own store (SQLite history behind `eval:view`) inside the repo
 // instead of ~/.promptfoo, so a clone is self-contained. .env can override this;
 // we only set a default when nothing has. .promptfoo/ is gitignored.
@@ -43,7 +45,11 @@ const REPORT_MD = path.join(REPORT_DIR, "REPORT.md"); // committed markdown snap
 const HISTORY = path.join(REPORT_DIR, "history.jsonl"); // committed run-over-run ledger
 // Labels for the "before" column (expected to fall short); everything else is
 // treated as the shipped/candidate column that the leaderboard ranks on.
-const BASELINE = /^(no-?prompt|no-?skill|without|baseline|legacy|tool-?baseline)$/i;
+// The "before" columns, expected to fall short. Must match the labels the
+// configs actually use (prompts/.../promptfooconfig.yaml): no-prompt, naive,
+// no-skill, tool-baseline. ("legacy" is the loader export name; "naive" is its
+// column label — both listed so either spelling is caught.)
+const BASELINE = /^(no-?prompt|no-?skill|without|naive|baseline|legacy|tool-?baseline)$/i;
 const NEUTRAL = "judge-primary"; // Opus — the unbiased judge we score the heatmap on
 
 function findConfigs(dir, out = []) {
@@ -58,7 +64,13 @@ function findConfigs(dir, out = []) {
 const rawArgs = process.argv.slice(2);
 // --report re-renders the leaderboard + REPORT.md from existing runs without re-running.
 const reportOnly = rawArgs.includes("--report");
-const passthrough = rawArgs.filter((a) => a !== "--report");
+// --no-gate runs + reports but never fails the process on a gate verdict.
+const noGate = rawArgs.includes("--no-gate");
+const passthrough = rawArgs.filter((a) => a !== "--report" && a !== "--no-gate");
+// Sample each cell EVAL_SAMPLES times so the gate judges a distribution, not one
+// noisy score. Skip --repeat at 1 (and if the caller passed their own).
+const sampleArgs =
+  THRESHOLDS.samples > 1 && !passthrough.includes("--repeat") ? ["--repeat", String(THRESHOLDS.samples)] : [];
 const configs = ROOTS.filter(fs.existsSync)
   .flatMap((r) => findConfigs(r))
   .sort();
@@ -77,14 +89,17 @@ if (reportOnly) {
   fs.rmSync(OUT_DIR, { recursive: true, force: true });
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
-  console.log(`Running ${configs.length} eval configs...`);
+  console.log(`Running ${configs.length} eval configs (${THRESHOLDS.samples} sample(s)/cell)...`);
   for (const cfg of configs) {
     const id = cfg.replace(/[/\\]promptfooconfig\.yaml$/, "").replace(/[/\\]/g, "__");
     const outFile = path.join(OUT_DIR, `${id}.json`);
     console.log(`\n${"=".repeat(72)}\n=== ${cfg}\n${"=".repeat(72)}`);
     // Run promptfoo under THIS node (process.execPath), not the PATH `node` the
     // bin's shebang would pick — so a single `nvm use` covers the whole run.
-    const res = spawnSync(process.execPath, [PROMPTFOO, "eval", "-c", cfg, "-o", outFile, ...passthrough], {
+    // promptfoo's response cache (in PROMPTFOO_CONFIG_DIR, i.e. the repo) is left
+    // ON: unchanged baseline/foundation calls are served from disk, so reruns
+    // don't re-pay for known-good/known-bad cells. --repeat adds the samples.
+    const res = spawnSync(process.execPath, [PROMPTFOO, "eval", "-c", cfg, "-o", outFile, ...sampleArgs, ...passthrough], {
       stdio: "inherit",
     });
     if (res.status !== 0 && res.status !== 100) {
@@ -127,24 +142,52 @@ function collect() {
       continue;
     }
     const name = f.replace(/\.json$/, "").replace(/__/g, "/").replace(/^prompts\//, "");
-    const models = {};
+    const models = {}; // foundation/shipped column(s): per-model tallies (heatmap, leaderboard)
+    const baseline = {}; // baseline columns by label: pooled neutral scores (gate margin)
     for (const r of data.results?.results || data.results || []) {
-      if (BASELINE.test((r.prompt?.label || "").trim())) continue;
+      const label = (r.prompt?.label || "").trim();
+      // Pull this row's neutral (primary) and secondary judge scores once.
+      const scores = { primary: [], secondary: [] };
+      for (const c of r.gradingResult?.componentResults || []) {
+        if ((c.assertion?.type || "") !== "llm-rubric" || typeof c.score !== "number") continue;
+        const j = judgeName(c.assertion?.provider);
+        if (j === "primary" || j === "secondary") scores[j].push(c.score);
+      }
+      if (BASELINE.test(label)) {
+        // Baselines exist only to set the floor the foundation must clear — track
+        // their neutral scores per column so the gate can beat the strongest.
+        (baseline[label] ??= { primary: [] }).primary.push(...scores.primary);
+        continue;
+      }
       const model = r.provider?.id || r.provider?.label || (typeof r.provider === "string" ? r.provider : "?");
       modelSet.add(model);
       const e = (models[model] ??= { n: 0, pass: 0, primary: [], secondary: [] });
       e.n++;
       if (r.success) e.pass++;
-      for (const c of r.gradingResult?.componentResults || []) {
-        if ((c.assertion?.type || "") !== "llm-rubric" || typeof c.score !== "number") continue;
-        const j = judgeName(c.assertion?.provider);
-        if (j === "primary" || j === "secondary") e[j].push(c.score);
-      }
+      e.primary.push(...scores.primary);
+      e.secondary.push(...scores.secondary);
     }
-    assets.push({ name, models });
+    assets.push({ name, models, baseline });
   }
   assets.sort((a, b) => a.name.localeCompare(b.name));
   return { assets, models: [...modelSet].sort() };
+}
+
+// Pool an asset's foundation scores across models + the baseline columns into the
+// shape evaluateGate() wants.
+function gatePools(asset) {
+  const cells = Object.values(asset.models);
+  return {
+    foundationPrimary: cells.flatMap((e) => e.primary),
+    foundationPass: cells.reduce((s, e) => s + e.pass, 0),
+    foundationN: cells.reduce((s, e) => s + e.n, 0),
+    baselinePrimaryByLabel: Object.fromEntries(Object.entries(asset.baseline).map(([l, v]) => [l, v.primary])),
+  };
+}
+
+// Per-asset gate verdicts (sorted by asset name, matching the heatmap order).
+function gateAll({ assets }) {
+  return assets.map((a) => ({ name: a.name, ...evaluateGate(gatePools(a)) }));
 }
 
 // One colored cell: neutral-judge quality (0–1), or pass fraction if no rubric.
@@ -213,6 +256,7 @@ function aggregateModels({ assets }) {
       cells: m.cells,
       passPct: m.cells ? (100 * m.pass) / m.cells : 0,
       primary: mean(m.primary),
+      primaryStdev: stdev(m.primary),
       secondary: mean(m.secondary),
     }))
     .sort((a, b) => b.passPct - a.passPct || (b.primary ?? 0) - (a.primary ?? 0));
@@ -226,19 +270,51 @@ function leaderboard(data) {
     return;
   }
   const fmt = (v) => (v == null ? "  -  " : v.toFixed(2));
-  console.log(`${pad("model", 22)}${pad("cells", 7)}${pad("pass%", 8)}${pad("primary (mean)", 16)}${pad("secondary (mean)", 16)}`);
+  const fmtSd = (m, sd) => (m == null ? "  -  " : `${m.toFixed(2)}±${(sd ?? 0).toFixed(2)}`);
+  console.log(`${pad("model", 22)}${pad("cells", 7)}${pad("pass%", 8)}${pad("primary (mean±sd)", 18)}${pad("secondary (mean)", 16)}`);
   for (const r of rows) {
-    console.log(`${pad(labelModel(r.model), 22)}${pad(r.cells, 7)}${pad(r.passPct.toFixed(0) + "%", 8)}${pad(fmt(r.primary), 16)}${pad(fmt(r.secondary), 16)}`);
+    console.log(`${pad(labelModel(r.model), 22)}${pad(r.cells, 7)}${pad(r.passPct.toFixed(0) + "%", 8)}${pad(fmtSd(r.primary, r.primaryStdev), 18)}${pad(fmt(r.secondary), 16)}`);
   }
   console.log(
     "\nNotes:\n" +
       "  • pass% / cells count the FOUNDATION column only — the bare and legacy\n" +
       "    columns (which are supposed to fail) are excluded. promptfoo's own\n" +
       "    per-run 'X passed (Y%)' line counts every column, so ignore it here.\n" +
+      "  • primary is mean±sd over all samples (EVAL_SAMPLES); a big ±sd means a\n" +
+      "    noisy cell — raise EVAL_SAMPLES before trusting the mean.\n" +
       "  • judge means are per judge — the two use different scales, so compare\n" +
       "    models *within* a judge column, not across. Higher is better.\n" +
       "  • Full per-cell scores + reasons: npm run eval:view.",
   );
+}
+
+// The ship/no-ship gate (see scripts/gate.js): does each asset clear the quality
+// floor AND beat its strongest baseline by the required margin?
+const GATE_GLYPH = { PASS: `${C.G}PASS${C.RST}`, WARN: `${C.Y}WARN${C.RST}`, FAIL: `${C.R}FAIL${C.RST}`, NODATA: `${C.DIM}—${C.RST}` };
+
+function gateSection(verdicts) {
+  const t = THRESHOLDS;
+  console.log(`\n${"=".repeat(72)}\nEVAL GATE — foundation must clear quality ≥ ${t.minQuality} and beat the\nstrongest baseline by ≥ ${t.minMargin} (neutral Opus judge, ${t.samples} sample(s)/cell)\n${"=".repeat(72)}`);
+  if (!verdicts.length) {
+    console.log("(no assets evaluated)");
+    return;
+  }
+  console.log(`${pad("asset", 32)}${pad("verdict", 8)}${pad("quality", 14)}${pad("vs baseline", 16)}detail`);
+  for (const v of verdicts) {
+    let quality = "·";
+    let vsBase = "·";
+    if (v.kind === "rubric") {
+      quality = `${v.fMean.toFixed(2)}±${v.fStd.toFixed(2)}`;
+      vsBase = v.margin == null ? "(no baseline)" : `${(v.margin >= 0 ? "+" : "") + v.margin.toFixed(2)} vs ${v.baseLabel}`;
+    } else if (v.kind === "structural") {
+      quality = `${v.pass}/${v.n} pass`;
+    }
+    const detail = v.reasons.join("; ");
+    console.log(`${pad(trunc(v.name, 31), 32)}${GATE_GLYPH[v.verdict]}${" ".repeat(4)}${pad(quality, 14)}${pad(vsBase, 16)}${C.DIM}${detail}${C.RST}`);
+  }
+  const { counts } = summarizeGate(verdicts);
+  console.log(`\n${counts.PASS} pass · ${counts.WARN} warn · ${counts.FAIL} fail · ${counts.NODATA} no-data`);
+  console.log("Tune with EVAL_MIN_QUALITY / EVAL_MIN_MARGIN / EVAL_MAX_STDEV / EVAL_SAMPLES in .env.");
 }
 
 // Short git SHA of HEAD, or "unknown" outside a checkout.
@@ -248,21 +324,41 @@ function gitSha() {
 }
 
 // --- committable markdown snapshot of the latest run ------------------------
-function writeReport(data) {
+function writeReport(data, verdicts) {
   const { assets, models: modelIds } = data;
   const models = modelIds.map(shortModel);
   const when = new Date().toISOString();
   const sha = gitSha();
+  const t = THRESHOLDS;
   const out = [];
   out.push("<!-- generated by scripts/eval.js — do not edit by hand; re-run `npm run eval` -->");
   out.push("# Eval report\n");
-  out.push(`_Latest run · commit \`${sha}\` · ${when}_\n`);
+  out.push(`_Latest run · commit \`${sha}\` · ${when} · ${t.samples} sample(s)/cell_\n`);
 
   if (!assets.length) {
     out.push("_No results in `reports/eval/runs/` — run `npm run eval` first._\n");
     fs.writeFileSync(REPORT_MD, out.join("\n"));
     return;
   }
+
+  // Gate first — the ship/no-ship decision is the headline.
+  const { counts } = summarizeGate(verdicts);
+  out.push("## Gate\n");
+  out.push(`Foundation must clear quality ≥ **${t.minQuality}** and beat its strongest baseline by ≥ **${t.minMargin}** (neutral Opus judge). ${counts.PASS} pass · ${counts.WARN} warn · ${counts.FAIL} fail · ${counts.NODATA} no-data.\n`);
+  out.push("| asset | verdict | quality (mean±sd) | vs baseline | notes |");
+  out.push("|---|---|---|---|---|");
+  for (const v of verdicts) {
+    let quality = "·";
+    let vsBase = "·";
+    if (v.kind === "rubric") {
+      quality = `${v.fMean.toFixed(2)}±${v.fStd.toFixed(2)}`;
+      vsBase = v.margin == null ? "(no baseline)" : `${(v.margin >= 0 ? "+" : "") + v.margin.toFixed(2)} vs ${v.baseLabel}`;
+    } else if (v.kind === "structural") {
+      quality = `${v.pass}/${v.n} pass`;
+    }
+    out.push(`| ${v.name} | ${v.verdict} | ${quality} | ${vsBase} | ${v.reasons.join("; ") || "—"} |`);
+  }
+  out.push("");
 
   // Heatmap: prompt × model, neutral (Opus) judge quality on the foundation column.
   out.push("## Prompt × model heatmap\n");
@@ -277,12 +373,12 @@ function writeReport(data) {
 
   // Leaderboard: per-model aggregate across all assets (foundation column only).
   out.push("## Model leaderboard\n");
-  out.push("Foundation prompt only, aggregated across all assets. The bare/legacy columns are designed to fail and are excluded. Judge means use different scales — compare models *within* a column, not across.\n");
-  out.push("| model | cells | pass% | primary (mean) | secondary (mean) |");
+  out.push("Foundation prompt only, aggregated across all assets. The bare/legacy columns are designed to fail and are excluded. `primary` is mean±sd over all samples — a large ±sd means a noisy cell. Judge means use different scales — compare models *within* a column, not across.\n");
+  out.push("| model | cells | pass% | primary (mean±sd) | secondary (mean) |");
   out.push("|---|---|---|---|---|");
   const fmt = (v) => (v == null ? "–" : v.toFixed(2));
   for (const r of aggregateModels(data)) {
-    out.push(`| ${labelModel(r.model)} | ${r.cells} | ${r.passPct.toFixed(0)}% | ${fmt(r.primary)} | ${fmt(r.secondary)} |`);
+    out.push(`| ${labelModel(r.model)} | ${r.cells} | ${r.passPct.toFixed(0)}% | ${fmt(r.primary)}±${(r.primaryStdev ?? 0).toFixed(2)} | ${fmt(r.secondary)} |`);
   }
   out.push("\n_Full per-cell scores, diffs, and judge reasoning: `npm run eval:view`. Score trends over time: `npm run eval:trend`._");
 
@@ -292,18 +388,20 @@ function writeReport(data) {
 }
 
 // --- append this run to the history ledger ----------------------------------
-function appendHistory(data) {
+function appendHistory(data, verdicts) {
   const models = {};
   for (const r of aggregateModels(data)) {
     models[shortModel(r.model)] = {
       cells: r.cells,
       passPct: Math.round(r.passPct),
       primary: r.primary == null ? null : Number(r.primary.toFixed(3)),
+      primaryStdev: Number((r.primaryStdev ?? 0).toFixed(3)),
       secondary: r.secondary == null ? null : Number(r.secondary.toFixed(3)),
     };
   }
   if (!Object.keys(models).length) return; // nothing scored — don't pad the ledger
-  const entry = { ts: new Date().toISOString(), commit: gitSha(), models };
+  const { counts } = summarizeGate(verdicts);
+  const entry = { ts: new Date().toISOString(), commit: gitSha(), samples: THRESHOLDS.samples, gate: counts, models };
   fs.mkdirSync(REPORT_DIR, { recursive: true });
   fs.appendFileSync(HISTORY, JSON.stringify(entry) + "\n");
   console.log(`Appended run to ${path.relative(process.cwd(), HISTORY)} (history ledger).`);
@@ -311,10 +409,14 @@ function appendHistory(data) {
 
 // ---- run the report (all helpers above are now defined) ----
 const data = collect();
+const verdicts = gateAll(data);
 heatmap(data);
 leaderboard(data);
-writeReport(data);
-if (!reportOnly) appendHistory(data); // ledger only grows on real runs, not re-renders
+gateSection(verdicts);
+writeReport(data, verdicts);
+if (!reportOnly) appendHistory(data, verdicts); // ledger only grows on real runs, not re-renders
+
+const { failed } = summarizeGate(verdicts);
 
 if (!reportOnly) {
   console.log(`\n${"=".repeat(72)}`);
@@ -325,4 +427,12 @@ if (!reportOnly) {
     process.exit(1);
   }
   console.log("No runtime errors.");
+}
+
+// The gate is the ship decision: a FAIL exits non-zero so `make eval` / CI can
+// block on it. --no-gate keeps the report but never fails (exploration). A
+// re-render (--report) reflects the saved verdict in its exit code too.
+if (failed && !noGate) {
+  console.error(`\nGATE FAILED — see the EVAL GATE table above. (override locally with --no-gate)`);
+  process.exit(1);
 }

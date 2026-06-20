@@ -27,6 +27,21 @@ npx promptfoo eval -c skills/commit-message/promptfooconfig.yaml
 
 `npm run eval` needs gateway access. `npm run check` and `npm run index` are fully offline. Every run is stored and visualized in several ways — see [Run history & reports](#run-history--reports) below.
 
+## Sampling & the ship gate
+
+A single LLM-judge score can't carry the repo's promise that "an asset ships only when it clearly beats the baseline" — the judges are noisy. So the eval does two things ([`scripts/gate.js`](../scripts/gate.js)):
+
+1. **Samples each cell `EVAL_SAMPLES` times** (default 3, via promptfoo `--repeat`) so every score is a distribution, reported as `mean±sd`. A large `±sd` means the cell is noisy — raise `EVAL_SAMPLES` before trusting it.
+2. **Gates on the pooled distribution.** For each asset the foundation column must, on the neutral (Opus) judge:
+   - clear an absolute floor — mean ≥ `EVAL_MIN_QUALITY` (default 0.7), **and**
+   - beat its **strongest** baseline column (no-prompt / naive) by ≥ `EVAL_MIN_MARGIN` (default 0.1).
+   - If it clears both but the foundation scores are too spread out (stdev > `EVAL_MAX_STDEV`, default 0.15) the verdict is **WARN** — sample more rather than believe the mean.
+   - Assets with no rubric (tool-routing / JSON-only) gate structurally instead: every foundation check must pass.
+
+`make eval` (and `npm run eval`) print an **EVAL GATE** table and **exit non-zero on any FAIL**, so the gate can block locally. For exploration, `node scripts/eval.js --no-gate` runs and reports but never fails. All four knobs live in `.env` (see `.env.example`). In CI, [`eval-ci.js`](../scripts/eval-ci.js) shows the same sampled gate verdict per changed asset in its PR comment (advisory — see [eval.yml](../.github/workflows/eval.yml)).
+
+The promptfoo response cache (kept in the repo via `PROMPTFOO_CONFIG_DIR`) stays **on**, so reruns of unchanged cells are served from disk and don't re-pay for known-good/known-bad columns; only the `--repeat` samples are fresh calls.
+
 ## Run history & reports
 
 Every run is captured three ways, from richest-but-local to committable-and-diffable. All of it is free and local — nothing leaves your machine.
