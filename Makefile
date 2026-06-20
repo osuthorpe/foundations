@@ -10,7 +10,7 @@ SHELL := /bin/bash
 NVM_USE := export NVM_DIR="$${NVM_DIR:-$$HOME/.nvm}"; [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use >/dev/null || true
 
 .DEFAULT_GOAL := help
-.PHONY: help install index check fix eval eval-one eval-view leaderboard gateway gateway-stop package clean ci all
+.PHONY: help install index check fix eval eval-one eval-view eval-trend leaderboard gateway gateway-stop package clean ci all
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -37,7 +37,10 @@ eval-one: ## Re-run ONE asset + plain-English per-model before/after (CONFIG=pro
 eval-view: ## Open the promptfoo results UI (auto-selects Node via nvm)
 	@$(NVM_USE); npm run eval:view
 
-leaderboard: ## Re-print the model leaderboard from saved reports/eval/ (no re-run)
+eval-trend: ## Render the score trend across runs (writes reports/eval/TREND.md)
+	@$(NVM_USE); npm run eval:trend
+
+leaderboard: ## Re-render leaderboard + REPORT.md from saved reports/eval/runs/ (no re-run)
 	@$(NVM_USE); node scripts/eval.js --report
 
 gateway: ## Start the local LiteLLM gateway + dashboard (http://localhost:4000/ui)

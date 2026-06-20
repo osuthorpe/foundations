@@ -18,13 +18,32 @@ npm install                 # once — installs promptfoo
 npm run check               # offline lint of frontmatter + generated files (no key)
 npm run eval                # run every asset's promptfooconfig.yaml
 npm run eval:view           # open the local web UI: results, diffs, history
+npm run eval:trend          # score-over-time table across past runs
 
 # a single asset, or pass any promptfoo flag through:
 npx promptfoo eval -c prompts/writing/summarize/promptfooconfig.yaml
 npx promptfoo eval -c skills/commit-message/promptfooconfig.yaml
 ```
 
-`npm run eval` needs gateway access. `npm run check` and `npm run index` are fully offline. promptfoo stores results locally; use `npm run eval:view` to browse runs, compare outputs, and watch for drift.
+`npm run eval` needs gateway access. `npm run check` and `npm run index` are fully offline. Every run is stored and visualized in several ways — see [Run history & reports](#run-history--reports) below.
+
+## Run history & reports
+
+Every run is captured three ways, from richest-but-local to committable-and-diffable. All of it is free and local — nothing leaves your machine.
+
+| View | Command | What it's for | Tracked in git? |
+| --- | --- | --- | --- |
+| **Interactive web UI** | `npm run eval:view` | Browse every past run, diff columns side by side, read each judge's reasoning. promptfoo's richest view. | No — SQLite store in `.promptfoo/` (gitignored) |
+| **Markdown snapshot** | written by `npm run eval` → [`reports/eval/REPORT.md`](../reports/eval/REPORT.md) | The latest run's heatmap + leaderboard as GitHub-rendered tables, stamped with commit SHA. Readable in the repo with no server. | **Yes** |
+| **History ledger** | appended by `npm run eval` → `reports/eval/history.jsonl` | One summary line per run (per-model pass% + judge means). | **Yes** |
+| **Trend table** | `npm run eval:trend` → [`reports/eval/TREND.md`](../reports/eval/TREND.md) | Neutral-judge score per model across the last N runs — the drift view neither the UI nor the snapshot shows well. | **Yes** |
+
+How it fits together:
+
+- **`npm run eval`** writes per-run JSON to `reports/eval/runs/` (bulky, gitignored, wiped each run), then regenerates `REPORT.md` and appends one line to `history.jsonl`. Commit those two to keep run history in the repo's git log.
+- **`npm run eval:trend`** (or `make eval-trend`) reads `history.jsonl` and writes `TREND.md`. Pass a count to change the window: `node scripts/eval-trend.js 30`.
+- **`make leaderboard`** (`node scripts/eval.js --report`) re-renders the leaderboard and `REPORT.md` from the saved `runs/` JSON **without** re-running models — and does *not* append to the ledger.
+- **`npm run eval:view`** reads promptfoo's own SQLite store. Set `PROMPTFOO_CONFIG_DIR=.promptfoo` in `.env` (see below) so that store lives in the repo and the UI shows the same runs `npm run eval` recorded.
 
 ## Models and gateway
 
@@ -33,7 +52,8 @@ All model calls go through a **LiteLLM gateway**. Runner and judge models can co
 ```bash
 cp .env.example .env
 # LITELLM_BASE_URL=http://localhost:4000
-# LITELLM_API_KEY=sk-...   # a virtual key from the gateway's dashboard (<base_url>/ui)
+# LITELLM_API_KEY=sk-...        # a virtual key from the gateway's dashboard (<base_url>/ui)
+# PROMPTFOO_CONFIG_DIR=.promptfoo  # keep promptfoo's run store (eval:view history) in the repo
 ```
 
 Two shared model roles are defined once and imported by every config via `file://`:

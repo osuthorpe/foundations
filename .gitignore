@@ -1,7 +1,12 @@
 .DS_Store
 dist/
 node_modules/
-reports/eval/
+# Per-run promptfoo JSON is bulky and machine-specific — ignore it, but keep the
+# committable run artifacts written beside it (markdown snapshot + history ledger).
+reports/eval/*
+!reports/eval/REPORT.md
+!reports/eval/TREND.md
+!reports/eval/history.jsonl
 reports/ci/
 eval-comment.md
 .promptfoo/

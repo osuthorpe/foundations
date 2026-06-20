@@ -5,6 +5,7 @@
   "scripts": {
     "eval": "node scripts/eval.js",
     "eval:view": "promptfoo view",
+    "eval:trend": "node scripts/eval-trend.js",
     "prompts:index": "node scripts/build-index.js",
     "assets:index": "node scripts/build-assets.js",
     "index": "node scripts/build-index.js && node scripts/build-assets.js",
