@@ -62,3 +62,7 @@ make package   # writes dist/<skill>.zip for every skill with consumer desktop-z
 - Use `make check` to lint every asset's frontmatter and the generated files (`prompts/INDEX.md`, `ASSETS.md`) offline; `make index` regenerates them.
 - Use `make eval` for promptfoo evals. It calls each model provider directly using the API keys in `.env` — set them up per [evals/README.md](evals/README.md).
 - Keep PRs to one asset and include its eval.
+
+## License
+
+[MIT](LICENSE) — use, adapt, and redistribute these prompts, skills, rules, and reference docs freely, including commercially. Attribution is appreciated but not required.

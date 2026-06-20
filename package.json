@@ -1,6 +1,7 @@
 {
   "name": "@osuthorpe/foundations",
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "eval": "node scripts/eval.js",
