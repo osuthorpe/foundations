@@ -94,7 +94,7 @@ function summarize(dir) {
         (baseline[label] ??= { primary: [] }).primary.push(...neutral);
         continue;
       }
-      const model = (r.provider?.id || r.provider?.label || "?").replace(/^litellm:(chat:)?/, "").replace(/^claude-/, "");
+      const model = (r.provider?.id || r.provider?.label || "?").replace(/^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:|litellm:(chat:)?)/, "").replace(/^anthropic\./, "").replace(/^claude-/, "");
       const e = (pm[model] ??= { n: 0, pass: 0, det: 0, err: 0, q: [] });
       e.n++;
       if (r.success) e.pass++;

@@ -25,7 +25,7 @@ npx promptfoo eval -c prompts/writing/summarize/promptfooconfig.yaml
 npx promptfoo eval -c skills/commit-message/promptfooconfig.yaml
 ```
 
-`npm run eval` needs gateway access. `npm run check` and `npm run index` are fully offline. Every run is stored and visualized in several ways — see [Run history & reports](#run-history--reports) below.
+`npm run eval` needs the provider API keys in `.env` (see [Models](#models)). `npm run check` and `npm run index` are fully offline. Every run is stored and visualized in several ways — see [Run history & reports](#run-history--reports) below.
 
 ## Sampling & the ship gate
 
@@ -60,21 +60,24 @@ How it fits together:
 - **`make leaderboard`** (`node scripts/eval.js --report`) re-renders the leaderboard and `REPORT.md` from the saved `runs/` JSON **without** re-running models — and does *not* append to the ledger.
 - **`npm run eval:view`** reads promptfoo's own SQLite store. Set `PROMPTFOO_CONFIG_DIR=.promptfoo` in `.env` (see below) so that store lives in the repo and the UI shows the same runs `npm run eval` recorded.
 
-## Models and gateway
+## Models
 
-All model calls go through a **LiteLLM gateway**. Runner and judge models can come from any provider the gateway serves, behind one key and one spend log. Configure it in `.env`:
+There is **no gateway**: promptfoo calls each model provider directly, reading that provider's API key from `.env`. Set only the keys your model list uses:
 
 ```bash
 cp .env.example .env
-# LITELLM_BASE_URL=http://localhost:4000
-# LITELLM_API_KEY=sk-...        # a virtual key from the gateway's dashboard (<base_url>/ui)
-# PROMPTFOO_CONFIG_DIR=.promptfoo  # keep promptfoo's run store (eval:view history) in the repo
+# ANTHROPIC_API_KEY=...    # anthropic:messages:* runners + the primary judge
+# OPENAI_API_KEY=...       # openai:chat:* runners + the secondary judge
+# GOOGLE_API_KEY / AWS_*   # only if you add google:* / bedrock:* models
+# PROMPTFOO_CONFIG_DIR=.promptfoo  # keep promptfoo's run store + cache in the repo
 ```
 
-Two shared model roles are defined once and imported by every config via `file://`:
+Two shared model roles are defined once and imported by every config via `file://`. Each entry is a **native promptfoo provider id** whose prefix selects the provider (and which key it reads): `anthropic:messages:…`, `openai:chat:…`, `google:…`, `bedrock:…`.
 
-- **runners** — the models under test, in [`promptfoo.base.yaml`](promptfoo.base.yaml). Add a line to run the whole suite against another model (the BYOM matrix).
+- **runners** — the models under test, in [`promptfoo.base.yaml`](promptfoo.base.yaml). Add a line to run the whole suite against another model (the BYOM matrix). For Bedrock, install the SDK once: `npm i -D @aws-sdk/client-bedrock-runtime`.
 - **judges** — the two-model panel that grades `llm-rubric` assertions, in [`judge-primary.yaml`](judge-primary.yaml) and [`judge-secondary.yaml`](judge-secondary.yaml). They're different model families on purpose, so they don't share blind spots; judge with a family different from the runner under test to avoid self-preference bias.
+
+> Migrated off a local LiteLLM gateway to direct providers: fewer moving parts (no Docker/Postgres/proxy/virtual key) and the native Anthropic provider doesn't trip Opus 4.8's `temperature` 400 the gateway had to work around. The trade-off is no single cross-provider spend log — each provider bills on its own dashboard.
 
 ## Config shape
 

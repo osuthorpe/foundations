@@ -19,7 +19,6 @@ A personal, canonical home for AI assets: **prompts**, **skills**, stable **refe
 | [`rules/`](rules/) | Cursor / AGENTS-style persistent editor guidance. See [rules/README.md](rules/README.md). |
 | [`evals/`](evals/) | Shared promptfoo configuration, loaders, judges, and helpers. See [evals/README.md](evals/README.md). |
 | [`scripts/`](scripts/) | Repo maintenance scripts for indexing and checks. See [scripts/README.md](scripts/README.md). |
-| [`gateway/`](gateway/) | Local LiteLLM gateway for running evals. See [gateway/README.md](gateway/README.md). |
 | [`ASSETS.md`](ASSETS.md) | Generated map of every asset by its distribution target (`consumers`). |
 
 Where each asset goes is declared in its frontmatter `consumers` list and validated by `npm run check`; [ASSETS.md](ASSETS.md) is the generated view of it.
@@ -61,5 +60,5 @@ make package   # writes dist/<skill>.zip for every skill with consumer desktop-z
 
 - Run `npm install` once. The [Makefile](Makefile) is the task runner — run `make` to list targets.
 - Use `make check` to lint every asset's frontmatter and the generated files (`prompts/INDEX.md`, `ASSETS.md`) offline; `make index` regenerates them.
-- Use `make eval` for promptfoo evals. Gateway setup is documented in [evals/README.md](evals/README.md).
+- Use `make eval` for promptfoo evals. It calls each model provider directly using the API keys in `.env` — set them up per [evals/README.md](evals/README.md).
 - Keep PRs to one asset and include its eval.

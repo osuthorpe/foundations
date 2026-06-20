@@ -72,7 +72,7 @@ make install    # install dependencies (once)
 make check      # lint all asset frontmatter + verify INDEX/ASSETS are fresh (offline, no key)
 make index      # regenerate prompts/INDEX.md and ASSETS.md
 make fix        # regenerate, then check
-make eval       # run promptfoo evals (needs gateway key)
+make eval       # run promptfoo evals (needs provider keys in .env)
 make eval-view  # results / history UI
 make package    # build the Claude Desktop / claude.ai skill zips into dist/
 make clean      # remove dist/
@@ -86,7 +86,7 @@ npx promptfoo validate config -c <path>   # check one config parses
 npx promptfoo eval -c <path>              # run one asset's eval
 ```
 
-Evals route through a LiteLLM gateway — set `LITELLM_BASE_URL` and `LITELLM_API_KEY` in `.env` (`cp .env.example .env`). Runner models live in `evals/promptfoo.base.yaml`; the two judges in `evals/judge-*.yaml`.
+Evals call each model provider directly (no gateway) — set the provider keys you use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) in `.env` (`cp .env.example .env`). Runner models live in `evals/promptfoo.base.yaml`; the two judges in `evals/judge-*.yaml`; each entry is a native promptfoo provider id (e.g. `anthropic:messages:…`).
 
 ## Before opening a PR
 

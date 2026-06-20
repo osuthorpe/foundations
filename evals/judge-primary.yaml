@@ -1,6 +1,8 @@
 # Primary judge — grades llm-rubric assertions. Change the model here once and
 # every eval picks it up. Judge with a different model family than the runner
 # under test to avoid self-preference bias.
-id: litellm:chat:claude-opus-4-8
-config:
-  apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
+#
+# Native Anthropic provider (reads ANTHROPIC_API_KEY, no gateway). It does not
+# send `temperature` unless configured, which also avoids Opus 4.8's 400 on
+# temperature/top_p/top_k — the thing the old gateway had to drop_params for.
+id: anthropic:messages:claude-opus-4-8

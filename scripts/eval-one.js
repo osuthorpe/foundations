@@ -19,7 +19,9 @@ import path from "node:path";
 
 const PROMPTFOO = path.resolve("node_modules/.bin/promptfoo");
 const OUT_DIR = path.resolve("reports/eval");
-const BASELINE = /^(no-?prompt|no-?skill|without|baseline|legacy|tool-?baseline)$/i;
+// Match the baseline column labels the configs use (no-prompt, naive, no-skill,
+// tool-baseline) — "naive" is the label, "legacy" the loader export.
+const BASELINE = /^(no-?prompt|no-?skill|without|naive|baseline|legacy|tool-?baseline)$/i;
 const NEUTRAL = "judge-primary"; // Opus — not a candidate runner model, so unbiased
 const NOISE = 0.1; // quality changes smaller than this are treated as grading noise
 
@@ -99,7 +101,7 @@ function summarize(data) {
   const rows = data.results?.results || data.results || [];
   const acc = {}; // model -> { shipped:{n,pass,q[]}, baseline:{n,pass,q[]} }
   for (const r of rows) {
-    const model = (r.provider?.id || r.provider?.label || "?").replace(/^litellm:(chat:)?/, "");
+    const model = (r.provider?.id || r.provider?.label || "?").replace(/^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:|litellm:(chat:)?)/, "");
     const kind = BASELINE.test((r.prompt?.label || "").trim()) ? "baseline" : "shipped";
     const e = (acc[model] ??= { shipped: { n: 0, pass: 0, q: [] }, baseline: { n: 0, pass: 0, q: [] } })[kind];
     e.n++;

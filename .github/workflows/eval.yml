@@ -2,19 +2,17 @@ name: eval
 
 # Runs on every PR that touches prompts/skills/eval tooling:
 #   1. check  — offline lint of frontmatter + generated indexes (free, always).
-#   2. eval   — eval ONLY the changed prompts through a gateway started in CI,
-#               compare PR vs base, and post a score comment carrying the sampled
-#               ship-gate verdict per asset (quality + margin; see scripts/gate.js).
-#               ADVISORY: it does not block the merge (no required checks /
-#               branch protection right now). To turn the gate into a hard block,
-#               make eval-ci.js exit non-zero when a verdict is FAIL and require
-#               this check in branch protection.
+#   2. eval   — eval ONLY the changed prompts (promptfoo calls each provider
+#               directly — no gateway), compare PR vs base, and post a score
+#               comment carrying the sampled ship-gate verdict per asset (quality
+#               + margin; see scripts/gate.js). ADVISORY: it does not block the
+#               merge (no required checks / branch protection right now). To turn
+#               the gate into a hard block, make eval-ci.js exit non-zero when a
+#               verdict is FAIL and require this check in branch protection.
 #
 # Required repo secrets (Settings → Secrets and variables → Actions):
-#   LITELLM_API_KEY      any strong "sk-..." string — in CI it's both the gateway
-#                        master key and the eval client key (fresh gateway per run)
-#   ANTHROPIC_API_KEY    runner + primary judge
-#   OPENAI_API_KEY       secondary judge + gpt runners
+#   ANTHROPIC_API_KEY    anthropic:* runners + the primary judge
+#   OPENAI_API_KEY       openai:* runners + the secondary judge
 
 on:
   pull_request:
@@ -25,7 +23,6 @@ on:
       - "rules/**"
       - "evals/**"
       - "scripts/**"
-      - "gateway/**"
       - ".github/workflows/eval.yml"
 
 jobs:
@@ -57,30 +54,13 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Write .env from secrets
-        run: |
-          cat > .env <<EOF
-          LITELLM_BASE_URL=http://localhost:4000
-          LITELLM_API_KEY=${{ secrets.LITELLM_API_KEY }}
-          LITELLM_MASTER_KEY=${{ secrets.LITELLM_API_KEY }}
-          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          EOF
-
-      - name: Start gateway
-        run: |
-          docker compose --env-file .env -f gateway/docker-compose.yml up -d
-          echo "waiting for gateway..."
-          for i in $(seq 1 90); do
-            curl -sf http://localhost:4000/health/liveliness && { echo " up"; exit 0; }
-            sleep 2
-          done
-          echo "gateway did not become healthy"; docker compose -f gateway/docker-compose.yml logs litellm; exit 1
-
       - name: Eval changed prompts (PR vs base)
         id: eval
         env:
           BASE_REF: origin/${{ github.base_ref }}
+          # promptfoo calls each provider directly — pass the keys it needs.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: node scripts/eval-ci.js
 
       - name: Post score comment
@@ -102,7 +82,3 @@ jobs:
             } else {
               await github.rest.issues.createComment({ owner, repo, issue_number, body });
             }
-
-      - name: Stop gateway
-        if: always()
-        run: docker compose --env-file .env -f gateway/docker-compose.yml down -v

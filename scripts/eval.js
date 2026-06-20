@@ -122,8 +122,12 @@ const C = { G: "\x1b[32m", Y: "\x1b[33m", R: "\x1b[31m", DIM: "\x1b[2m", RST: "\
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
 const pad = (s, n) => String(s).padEnd(n);
 const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
-const shortModel = (s) => String(s).replace(/^litellm:(chat:)?/, "").replace(/^claude-/, "");
-const labelModel = (s) => String(s).replace(/^litellm:(chat:)?/, "");
+// Strip the provider prefix (anthropic:messages:, openai:chat:, bedrock:, …)
+// for compact leaderboard/heatmap labels. shortModel also drops a leading
+// "claude-"/"anthropic." so families read cleanly.
+const PROVIDER_PREFIX = /^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:|litellm:(chat:)?)/;
+const shortModel = (s) => String(s).replace(PROVIDER_PREFIX, "").replace(/^anthropic\./, "").replace(/^claude-/, "");
+const labelModel = (s) => String(s).replace(PROVIDER_PREFIX, "");
 
 // --- shared collector -------------------------------------------------------
 // Read every saved run JSON once and return per-asset, per-model tallies for the
