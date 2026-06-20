@@ -28,7 +28,8 @@ Check it's up: `curl http://localhost:4000/health/liveliness` (should return `"I
 
 1. Open `http://localhost:4000/ui` and log in (UI_USERNAME / UI_PASSWORD from `.env`, default `admin` / `admin`, or the master key).
 2. **Virtual Keys → Create New Key**. Grant it the models the suite uses:
-   `claude-sonnet-4-6`, `claude-opus-4-8`, `gpt-5.5` (+ `gemini/gemini-2.5-pro` if enabled).
+   `claude-sonnet-4-6`, `claude-opus-4-8`, `gpt-5.5` (+ `gemini/gemini-2.5-pro`
+   or any `bedrock-*` model you enabled).
 3. Copy the `sk-...` key (shown once).
 
 ## Point the evals at it
@@ -43,6 +44,39 @@ The model map lives in [litellm-config.yaml](litellm-config.yaml). The `model_na
 values match what the eval configs request via `litellm:chat:<name>`. To test
 another model, add a row here and a matching row in
 [../evals/promptfoo.base.yaml](../evals/promptfoo.base.yaml).
+
+**Add models here, not in the dashboard.** The `/ui` can register models too, but
+those live only in Postgres — they aren't version-controlled and vanish if the
+volume is wiped. Keeping the map in `litellm-config.yaml` is the canonical path;
+the dashboard's only required job is issuing the virtual key.
+
+### AWS Bedrock
+
+Bedrock lets you serve additional models from your own AWS account. It's wired
+the same way as the other providers, plus AWS credentials:
+
+1. **Enable model access** — Bedrock console → *Model access* → request/enable
+   each model you want, in the region you'll use. (Bedrock denies models you
+   haven't explicitly enabled, per region.)
+2. **Set credentials in the repo-root `.env`** — either static keys
+   (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, optional `AWS_SESSION_TOKEN`)
+   and `AWS_REGION_NAME`, or leave the keys blank and run under an IAM role /
+   instance profile (boto3's default credential chain). `docker-compose.yml`
+   passes all of these into the gateway.
+3. **Add the model** to [litellm-config.yaml](litellm-config.yaml) as
+   `model: bedrock/<modelId-or-inference-profile-id>`. Use the exact id for your
+   region — list them with:
+   ```sh
+   aws bedrock list-foundation-models --region <region> --query 'modelSummaries[].modelId'
+   ```
+   A `bedrock-claude-sonnet` example (commented siblings for others) is already
+   in the config; swap in your real id.
+4. **Put it in the matrix** — uncomment the matching `litellm:chat:bedrock-...`
+   line in [../evals/promptfoo.base.yaml](../evals/promptfoo.base.yaml), and grant
+   the new `model_name` to your virtual key (next section).
+
+No AWS keys = no problem if you don't add a `bedrock/*` model; the vars are
+optional and unused otherwise.
 
 ## Manage
 

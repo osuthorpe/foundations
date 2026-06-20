@@ -16,3 +16,8 @@
 # - id: litellm:chat:gemini/gemini-2.5-pro
 #   config:
 #     apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
+# AWS Bedrock model (must match a model_name in gateway/litellm-config.yaml and
+# have AWS_* set in .env):
+# - id: litellm:chat:bedrock-claude-sonnet
+#   config:
+#     apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"

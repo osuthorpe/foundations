@@ -38,6 +38,31 @@ model_list:
       model: gemini/gemini-2.5-pro
       api_key: os.environ/GEMINI_API_KEY
 
+  # AWS Bedrock — additional models served from your own AWS account. Credentials
+  # come from the AWS_* env vars (docker-compose.yml → .env); on Bedrock you also
+  # MUST enable each model under Bedrock console → "Model access" in that region.
+  # The `model:` value is `bedrock/<modelId-or-inference-profile-id>` — use the
+  # EXACT id available in your account & region. List them with:
+  #   aws bedrock list-foundation-models --region <region> \
+  #     --query 'modelSummaries[].modelId'
+  # Newer Claude models on Bedrock are region inference profiles, e.g.
+  # `bedrock/us.anthropic.claude-sonnet-4-...`. Add a matching runner line in
+  # evals/promptfoo.base.yaml (litellm:chat:<model_name>) to put it in the matrix.
+  - model_name: bedrock-claude-sonnet
+    litellm_params:
+      # ↓ replace with the exact model / inference-profile id enabled for you
+      model: bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0
+      aws_region_name: os.environ/AWS_REGION_NAME
+      # Static keys are read from the env automatically; listing them here makes
+      # the dependency explicit. Omit them to use an IAM role instead.
+      aws_access_key_id: os.environ/AWS_ACCESS_KEY_ID
+      aws_secret_access_key: os.environ/AWS_SECRET_ACCESS_KEY
+  # A non-Anthropic Bedrock model, to show "additional models" (uncomment + adjust):
+  # - model_name: bedrock-nova-pro
+  #   litellm_params:
+  #     model: bedrock/amazon.nova-pro-v1:0
+  #     aws_region_name: os.environ/AWS_REGION_NAME
+
 # Drop request params a given provider/model doesn't support instead of 400ing.
 # LiteLLM knows OpenAI's per-model support (e.g. GPT-5 reasoning models that
 # reject `temperature`); the Anthropic Opus-4.8 case is handled explicitly above
