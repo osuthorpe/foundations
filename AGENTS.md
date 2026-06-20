@@ -33,7 +33,8 @@ Human docs live in each folder's `README.md` (start at [README.md](README.md)). 
 ## Conventions
 
 - **Prompt name = folder path joined with `-`.** `prompts/writing/summarize/` → `name: writing-summarize`. `npm run check` enforces the match.
-- **Prompt class.** `completion` (caller supplies every input; one call) or `agentic` (needs live resources/tools; must carry the fallback ladder: use context → fetch with tools → ask the user; never act from an ID alone).
+- **Prompt vs skill.** Build a **prompt** only when a non-conversational caller invokes it by name, with arguments, and depends on its output shape (a typed, testable contract). If the model should *decide on its own* to apply judgment, a procedure, or tools, that's a **skill**. Prompts are caller-invoked functions; skills self-activate.
+- **Prompt class.** `completion` is the only class: caller supplies every input, one model call, one output. (Agentic / tool-using work is a skill, not a prompt.)
 - **Model-agnostic.** Never name a model. Split the body with `## System` / `## User`; inline JSON contracts via the `{{schema}}` placeholder (filled from `schema.json`); declare needed capabilities in `requires:`.
 - **Output contract.** End a prompt body with it ("Return only the corrected text" / "Return only JSON conforming to the schema").
 - **Skill description is the trigger** — spell out *when* to use it. Write skills for the AI (imperative, rules and routing tables, say what not to do).

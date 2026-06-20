@@ -9,7 +9,7 @@
 //   - every {{placeholder}} in the body and resource URIs is a declared
 //     argument ({{schema}} is built in when a schema.json exists)
 //   - schema.json parses when output is json
-//   - agentic prompts don't use a ## System section (MCP messages are user/assistant)
+//   - class is completion (agentic work belongs in a skill, not a prompt)
 //
 // Skills (skills/<name>/SKILL.md):
 //   - the skill file is uppercase SKILL.md (lowercase skill.md is silently
@@ -39,7 +39,6 @@ import {
   placeholders,
   renderAssets,
   renderIndex,
-  splitRoles,
 } from "./meta.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -50,7 +49,7 @@ const warnings = [];
 const err = (file, msg) => errors.push(`${file}: ${msg}`);
 const warn = (file, msg) => warnings.push(`${file}: ${msg}`);
 
-const PROMPT_CLASSES = new Set(["completion", "agentic"]);
+const PROMPT_CLASSES = new Set(["completion"]);
 const PROMPT_OUTPUTS = new Set(["text", "json", "image-prompt"]);
 const STATUSES = new Set(["proposed", "active", "deprecated"]);
 const PROMPT_CAPABILITIES = new Set(["image-generation", "tool-use", "vision"]);
@@ -87,7 +86,7 @@ for (const p of prompts) {
   if (!m.name) err(rel, 'missing "name"');
   else if (m.name !== expectedName) err(rel, `name "${m.name}" must be "${expectedName}" (matches folder path ${p.folder})`);
   if (!m.description) err(rel, 'missing "description"');
-  if (!PROMPT_CLASSES.has(m.class)) err(rel, `"class" must be completion|agentic (got "${m.class ?? ""}")`);
+  if (!PROMPT_CLASSES.has(m.class)) err(rel, `"class" must be completion (got "${m.class ?? ""}") — agentic work is a skill, not a prompt`);
   if (!PROMPT_OUTPUTS.has(m.output)) err(rel, `"output" must be text|json|image-prompt (got "${m.output ?? ""}")`);
   if (!STATUSES.has(m.status)) err(rel, `"status" must be proposed|active|deprecated (got "${m.status ?? ""}")`);
   checkConsumers(rel, m.consumers, PROMPT_CONSUMERS);
@@ -98,11 +97,6 @@ for (const p of prompts) {
     if (!PROMPT_CAPABILITIES.has(cap)) {
       err(rel, `unknown capability "${cap}" in requires (allowed: ${[...PROMPT_CAPABILITIES].join(", ")})`);
     }
-  }
-
-  const sections = splitRoles(p.body);
-  if (sections.system !== null && m.class === "agentic") {
-    warn(rel, "agentic prompt has a ## System section — MCP prompt messages only carry user/assistant roles");
   }
 
   const declared = new Set((m.arguments ?? []).map((a) => a.name));
