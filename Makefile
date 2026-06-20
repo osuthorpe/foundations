@@ -10,7 +10,7 @@ SHELL := /bin/bash
 NVM_USE := export NVM_DIR="$${NVM_DIR:-$$HOME/.nvm}"; [ -s "$$NVM_DIR/nvm.sh" ] && . "$$NVM_DIR/nvm.sh" && nvm use >/dev/null || true
 
 .DEFAULT_GOAL := help
-.PHONY: help install index check fix eval eval-one eval-view leaderboard gateway gateway-stop package clean ci all
+.PHONY: help install index check fix eval eval-one eval-view eval-trend leaderboard package clean ci all
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -27,7 +27,7 @@ check: ## Lint all asset frontmatter + verify the generated files are fresh (off
 
 fix: index check ## Regenerate the generated files, then validate
 
-eval: ## Run promptfoo evals (auto-selects Node via nvm; needs the gateway key in .env)
+eval: ## Run promptfoo evals (auto-selects Node via nvm; needs provider keys in .env)
 	@$(NVM_USE); npm run eval
 
 eval-one: ## Re-run ONE asset + plain-English per-model before/after (CONFIG=prompts/writing/summarize)
@@ -37,14 +37,11 @@ eval-one: ## Re-run ONE asset + plain-English per-model before/after (CONFIG=pro
 eval-view: ## Open the promptfoo results UI (auto-selects Node via nvm)
 	@$(NVM_USE); npm run eval:view
 
-leaderboard: ## Re-print the model leaderboard from saved reports/eval/ (no re-run)
+eval-trend: ## Render the score trend across runs (writes reports/eval/TREND.md)
+	@$(NVM_USE); npm run eval:trend
+
+leaderboard: ## Re-render leaderboard + REPORT.md from saved reports/eval/runs/ (no re-run)
 	@$(NVM_USE); node scripts/eval.js --report
-
-gateway: ## Start the local LiteLLM gateway + dashboard (http://localhost:4000/ui)
-	cd gateway && docker compose --env-file ../.env up -d
-
-gateway-stop: ## Stop the local LiteLLM gateway (keeps issued keys)
-	cd gateway && docker compose --env-file ../.env down
 
 package: ## Build the Claude Desktop / claude.ai skill zips into dist/
 	bash package-claude-desktop.sh

@@ -20,12 +20,14 @@ filter on `consumers`.
 
 | Asset | Type | Status | All consumers |
 | --- | --- | --- | --- |
+| [ai-trust-agency-review](skills/ai-trust-agency-review/SKILL.md) | skill | proposed | cc-plugin, desktop-zip |
 | [commit-message](skills/commit-message/SKILL.md) | skill | active | cc-plugin, desktop-zip |
 
 ### Claude Desktop / claude.ai zip — `desktop-zip`
 
 | Asset | Type | Status | All consumers |
 | --- | --- | --- | --- |
+| [ai-trust-agency-review](skills/ai-trust-agency-review/SKILL.md) | skill | proposed | cc-plugin, desktop-zip |
 | [commit-message](skills/commit-message/SKILL.md) | skill | active | cc-plugin, desktop-zip |
 
 ### MCP server / agent — `mcp`

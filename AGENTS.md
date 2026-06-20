@@ -27,12 +27,14 @@ Human docs live in each folder's `README.md` (start at [README.md](README.md)). 
 - **Don't add tools here.** Tools (code that acts on live systems) live in the product that runs the agent — the codebase with the credentials and access. This repo only teaches the AI how to use them.
 - **Don't let the [Makefile](Makefile) fall behind.** It is the de facto task runner. Any core change to how work is run here — a new script, a renamed npm command, a new build/generation/test step — must add or update the matching `make` target in the same PR.
 - **Don't let a skill reach outside its folder.** Reference data by relative path so the folder travels as a unit.
-- **Don't merge a prompt or skill without an eval that shows it beats a baseline.**
+- **Don't nest skills in category folders.** Skills are flat: `skills/<name>/SKILL.md`. The Claude Code loader and `scripts/check.js` only scan one level under `skills/`, so a skill at `skills/<category>/<name>/SKILL.md` is silently invisible — not loaded, not checked, not evaluated. (Prompts may nest under an `<area>/`; skills may not.)
+- **Don't merge a prompt or skill without an eval that shows it beats a baseline.** The eval gate (`scripts/gate.js`) makes this concrete: the foundation column must clear `EVAL_MIN_QUALITY` and beat its strongest baseline by `EVAL_MIN_MARGIN` on the neutral judge, sampled `EVAL_SAMPLES` times. `make eval` exits non-zero on a gate FAIL.
 
 ## Conventions
 
 - **Prompt name = folder path joined with `-`.** `prompts/writing/summarize/` → `name: writing-summarize`. `npm run check` enforces the match.
-- **Prompt class.** `completion` (caller supplies every input; one call) or `agentic` (needs live resources/tools; must carry the fallback ladder: use context → fetch with tools → ask the user; never act from an ID alone).
+- **Prompt vs skill.** Build a **prompt** only when a non-conversational caller invokes it by name, with arguments, and depends on its output shape (a typed, testable contract). If the model should *decide on its own* to apply judgment, a procedure, or tools, that's a **skill**. Prompts are caller-invoked functions; skills self-activate.
+- **Prompt class.** `completion` is the only class: caller supplies every input, one model call, one output. (Agentic / tool-using work is a skill, not a prompt.)
 - **Model-agnostic.** Never name a model. Split the body with `## System` / `## User`; inline JSON contracts via the `{{schema}}` placeholder (filled from `schema.json`); declare needed capabilities in `requires:`.
 - **Output contract.** End a prompt body with it ("Return only the corrected text" / "Return only JSON conforming to the schema").
 - **Skill description is the trigger** — spell out *when* to use it. Write skills for the AI (imperative, rules and routing tables, say what not to do).
@@ -71,7 +73,7 @@ make install    # install dependencies (once)
 make check      # lint all asset frontmatter + verify INDEX/ASSETS are fresh (offline, no key)
 make index      # regenerate prompts/INDEX.md and ASSETS.md
 make fix        # regenerate, then check
-make eval       # run promptfoo evals (needs gateway key)
+make eval       # run promptfoo evals (needs provider keys in .env)
 make eval-view  # results / history UI
 make package    # build the Claude Desktop / claude.ai skill zips into dist/
 make clean      # remove dist/
@@ -85,11 +87,11 @@ npx promptfoo validate config -c <path>   # check one config parses
 npx promptfoo eval -c <path>              # run one asset's eval
 ```
 
-Evals route through a LiteLLM gateway — set `LITELLM_BASE_URL` and `LITELLM_API_KEY` in `.env` (`cp .env.example .env`). Runner models live in `evals/promptfoo.base.yaml`; the two judges in `evals/judge-*.yaml`.
+Evals call each model provider directly — set the provider keys you use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) in `.env` (`cp .env.example .env`). Runner models live in `evals/promptfoo.base.yaml`; the two judges in `evals/judge-*.yaml`; each entry is a native promptfoo provider id (e.g. `anthropic:messages:…`).
 
 ## Before opening a PR
 
 - `make check` passes (0 errors).
 - `make index` leaves `prompts/INDEX.md` and `ASSETS.md` unchanged (i.e. they're fresh).
-- The new/changed prompt or skill's eval passes.
+- The new/changed prompt or skill's eval **passes the gate** (`make eval` exits 0 — quality + margin clear the thresholds; see [evals/README.md](evals/README.md#sampling--the-ship-gate)).
 - One asset per PR, with its eval in the same PR.

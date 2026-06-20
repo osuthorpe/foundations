@@ -1,5 +1,4 @@
 # Secondary judge — the second member of the two-model judge panel. A different
-# family from the primary judge so the two don't share blind spots.
-id: litellm:chat:gpt-5.5
-config:
-  apiBaseUrl: "{{ env.LITELLM_BASE_URL }}"
+# family from the primary judge so the two don't share blind spots. Native
+# OpenAI provider (reads OPENAI_API_KEY).
+id: openai:chat:gpt-5.5

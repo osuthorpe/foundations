@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "ai-trust-agency-review (skill-coverage) — does the skill turn a vague AI-product question into a concrete agency review? no skill vs with skill"
+
+providers: file://../../evals/promptfoo.base.yaml
+
+prompts:
+  - {"id":"file://../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+
+defaultTest:
+  vars: {"skillPath":"skills/ai-trust-agency-review/SKILL.md"}
+  assert:
+    - type: llm-rubric
+      value: >-
+        The response is a concrete AI-product trust/agency review, not generic
+        feedback. Pass only if it: (1) leads with a clear product judgment —
+        ready, risky-but-fixable, or not-ready — rather than generic praise;
+        (2) names the specific user fear or concrete agency risk for THIS
+        feature (loss of control, an irreversible action, a hidden jump up the
+        autonomy ladder, or missing proof/recourse); (3) weighs whether the
+        control, proof (sources/evidence/confidence/logs), and recourse
+        (undo/appeal/escalation) match the stakes and reversibility — including
+        the feature's autonomy level; and (4) ends with specific product changes
+        or a release condition. Fail if it is vague encouragement, a restatement
+        of the feature, or generic "add privacy and more testing" advice not
+        grounded in user agency.
+      provider: file://../../evals/judge-primary.yaml
+    - type: llm-rubric
+      value: >-
+        The response is a concrete AI-product trust/agency review, not generic
+        feedback. Pass only if it: (1) leads with a clear product judgment —
+        ready, risky-but-fixable, or not-ready — rather than generic praise;
+        (2) names the specific user fear or concrete agency risk for THIS
+        feature (loss of control, an irreversible action, a hidden jump up the
+        autonomy ladder, or missing proof/recourse); (3) weighs whether the
+        control, proof (sources/evidence/confidence/logs), and recourse
+        (undo/appeal/escalation) match the stakes and reversibility — including
+        the feature's autonomy level; and (4) ends with specific product changes
+        or a release condition. Fail if it is vague encouragement, a restatement
+        of the feature, or generic "add privacy and more testing" advice not
+        grounded in user agency.
+      provider: file://../../evals/judge-secondary.yaml
+
+tests:
+  # High autonomy + customer-facing + hard to undo: treatment should flag the
+  # autonomy level, the missing human review, and demand control/recourse.
+  - description: "ai-trust-agency-review-autoclose-001"
+    vars: {"question":"Review this feature: our support tool will let the AI automatically reply to and close customer tickets it is confident about, with no agent reviewing first. Should we ship it?"}
+  # PRD critique where the AI acts on the user's behalf inside their inbox:
+  # treatment should name the fear, check proof/recourse, and surface hidden work.
+  - description: "ai-trust-agency-review-inbox-prd-002"
+    vars: {"question":"Here is a PRD: an AI agent reads each employee's inbox and, on their behalf, auto-archives or replies to email it judges low-priority. Give me a product review and tell me whether it is ready to launch."}
