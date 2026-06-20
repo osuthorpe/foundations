@@ -2,7 +2,6 @@
 # every eval picks it up. Judge with a different model family than the runner
 # under test to avoid self-preference bias.
 #
-# Native Anthropic provider (reads ANTHROPIC_API_KEY, no gateway). It does not
-# send `temperature` unless configured, which also avoids Opus 4.8's 400 on
-# temperature/top_p/top_k — the thing the old gateway had to drop_params for.
+# Native Anthropic provider (reads ANTHROPIC_API_KEY). It sends no `temperature`
+# unless configured, which suits Opus 4.8 (it rejects temperature/top_p/top_k).
 id: anthropic:messages:claude-opus-4-8

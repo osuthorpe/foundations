@@ -3,7 +3,7 @@ name: eval
 # Runs on every PR that touches prompts/skills/eval tooling:
 #   1. check  — offline lint of frontmatter + generated indexes (free, always).
 #   2. eval   — eval ONLY the changed prompts (promptfoo calls each provider
-#               directly — no gateway), compare PR vs base, and post a score
+#               directly using its API key), compare PR vs base, and post a score
 #               comment carrying the sampled ship-gate verdict per asset (quality
 #               + margin; see scripts/gate.js). ADVISORY: it does not block the
 #               merge (no required checks / branch protection right now). To turn

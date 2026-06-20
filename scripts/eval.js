@@ -125,7 +125,7 @@ const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 // Strip the provider prefix (anthropic:messages:, openai:chat:, bedrock:, …)
 // for compact leaderboard/heatmap labels. shortModel also drops a leading
 // "claude-"/"anthropic." so families read cleanly.
-const PROVIDER_PREFIX = /^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:|litellm:(chat:)?)/;
+const PROVIDER_PREFIX = /^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:)/;
 const shortModel = (s) => String(s).replace(PROVIDER_PREFIX, "").replace(/^anthropic\./, "").replace(/^claude-/, "");
 const labelModel = (s) => String(s).replace(PROVIDER_PREFIX, "");
 

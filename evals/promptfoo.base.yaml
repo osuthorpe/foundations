@@ -2,9 +2,9 @@
 # Every asset's promptfooconfig.yaml points its `providers:` at this file, so
 # adding a model here runs the whole suite against it.
 #
-# promptfoo calls each provider DIRECTLY using that provider's API key from the
-# environment (.env) — there is no gateway. The provider prefix selects the
-# integration and which key it reads:
+# promptfoo calls each provider directly using that provider's API key from the
+# environment (.env). The provider prefix selects the integration and which key
+# it reads:
 #   anthropic:messages:<model>  → ANTHROPIC_API_KEY
 #   openai:chat:<model>         → OPENAI_API_KEY
 #   google:<model>              → GOOGLE_API_KEY   (Gemini / AI Studio)

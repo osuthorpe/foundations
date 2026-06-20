@@ -101,7 +101,7 @@ function summarize(data) {
   const rows = data.results?.results || data.results || [];
   const acc = {}; // model -> { shipped:{n,pass,q[]}, baseline:{n,pass,q[]} }
   for (const r of rows) {
-    const model = (r.provider?.id || r.provider?.label || "?").replace(/^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:|litellm:(chat:)?)/, "");
+    const model = (r.provider?.id || r.provider?.label || "?").replace(/^(anthropic:messages:|openai:chat:|google:|vertex:|bedrock:)/, "");
     const kind = BASELINE.test((r.prompt?.label || "").trim()) ? "baseline" : "shipped";
     const e = (acc[model] ??= { shipped: { n: 0, pass: 0, q: [] }, baseline: { n: 0, pass: 0, q: [] } })[kind];
     e.n++;

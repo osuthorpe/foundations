@@ -86,7 +86,7 @@ npx promptfoo validate config -c <path>   # check one config parses
 npx promptfoo eval -c <path>              # run one asset's eval
 ```
 
-Evals call each model provider directly (no gateway) — set the provider keys you use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) in `.env` (`cp .env.example .env`). Runner models live in `evals/promptfoo.base.yaml`; the two judges in `evals/judge-*.yaml`; each entry is a native promptfoo provider id (e.g. `anthropic:messages:…`).
+Evals call each model provider directly — set the provider keys you use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) in `.env` (`cp .env.example .env`). Runner models live in `evals/promptfoo.base.yaml`; the two judges in `evals/judge-*.yaml`; each entry is a native promptfoo provider id (e.g. `anthropic:messages:…`).
 
 ## Before opening a PR
 

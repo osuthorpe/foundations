@@ -62,7 +62,7 @@ How it fits together:
 
 ## Models
 
-There is **no gateway**: promptfoo calls each model provider directly, reading that provider's API key from `.env`. Set only the keys your model list uses:
+promptfoo calls each model provider **directly**, reading that provider's API key from `.env`. Set only the keys your model list uses:
 
 ```bash
 cp .env.example .env
@@ -77,7 +77,7 @@ Two shared model roles are defined once and imported by every config via `file:/
 - **runners** — the models under test, in [`promptfoo.base.yaml`](promptfoo.base.yaml). Add a line to run the whole suite against another model (the BYOM matrix). For Bedrock, install the SDK once: `npm i -D @aws-sdk/client-bedrock-runtime`.
 - **judges** — the two-model panel that grades `llm-rubric` assertions, in [`judge-primary.yaml`](judge-primary.yaml) and [`judge-secondary.yaml`](judge-secondary.yaml). They're different model families on purpose, so they don't share blind spots; judge with a family different from the runner under test to avoid self-preference bias.
 
-> Migrated off a local LiteLLM gateway to direct providers: fewer moving parts (no Docker/Postgres/proxy/virtual key) and the native Anthropic provider doesn't trip Opus 4.8's `temperature` 400 the gateway had to work around. The trade-off is no single cross-provider spend log — each provider bills on its own dashboard.
+Each provider bills on its own dashboard — there is no single combined spend log.
 
 ## Config shape
 
