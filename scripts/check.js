@@ -13,10 +13,10 @@
 //
 // Skills (skills/<name>/SKILL.md):
 //   - the skill file is uppercase SKILL.md (lowercase skill.md is silently
-//     ignored by the Claude Code loader)
-//   - name == folder name; description present; status / consumers valid
-//   - consumers ⟺ directory: `cc-plugin` requires skills/ (the only dir the
-//     CLI scans)
+//     ignored by the skill loader)
+//   - name == leaf folder name; description present; status / consumers valid
+//   - skills may be grouped one level deep (skills/<category>/<name>/); leaf
+//     skill names must be unique across categories
 //
 // Reference (reference/<name>.md): name / description / status / consumers.
 // Rules (rules/<name>.mdc): name / description / status / consumers.
@@ -57,7 +57,7 @@ const CONSUMER_KEYS = new Set(Object.keys(CONSUMERS));
 
 // Which consumers each asset type may legitimately declare.
 const PROMPT_CONSUMERS = new Set(["mcp"]);
-const SKILL_CONSUMERS = new Set(["cc-plugin", "desktop-zip", "mcp"]);
+const SKILL_CONSUMERS = new Set(["desktop-zip", "mcp"]);
 const REFERENCE_CONSUMERS = new Set(["context-injection"]);
 const RULE_CONSUMERS = new Set(["cursor"]);
 
@@ -145,28 +145,34 @@ for (const s of skills) {
     continue;
   }
   const rel = `${s.folder}/${s.skillFile}`;
-  // The CLI loader only recognizes uppercase SKILL.md; a lowercase skill.md is
+  // The skill loader only recognizes uppercase SKILL.md; a lowercase skill.md is
   // silently dropped. Catching this is the whole point of the convention.
   if (!s.isUpperCase) {
-    err(rel, `skill file must be uppercase "SKILL.md" (found "${s.skillFile}") — the Claude Code loader ignores lowercase`);
+    err(rel, `skill file must be uppercase "SKILL.md" (found "${s.skillFile}") — the skill loader ignores lowercase`);
   }
   const m = s.meta;
   if (!m.name) err(rel, 'missing "name"');
-  else if (m.name !== s.name) err(rel, `name "${m.name}" must equal the folder name "${s.name}"`);
+  else if (m.name !== s.name) err(rel, `name "${m.name}" must equal the (leaf) folder name "${s.name}"`);
   if (!m.description) err(rel, 'missing "description"');
   if (!STATUSES.has(m.status)) err(rel, `"status" must be proposed|active|deprecated (got "${m.status ?? ""}")`);
   checkConsumers(rel, m.consumers, SKILL_CONSUMERS);
-
-  // The directory IS the cc-plugin boundary: Claude Code only scans skills/.
-  const claimsPlugin = (m.consumers ?? []).includes("cc-plugin");
-  if (!claimsPlugin && s.inPluginDir) {
-    err(rel, "lives in skills/ (which the CLI always loads) but does not declare consumer \"cc-plugin\" — add cc-plugin.");
-  }
 
   const hasEval = fs.existsSync(path.join(s.dir, "promptfooconfig.yaml"));
   if (!hasEval && m.status !== "deprecated") {
     warn(rel, "no promptfooconfig.yaml — add an eval before any consumer pins to this skill");
   }
+}
+
+// Leaf skill names must be unique across categories — a consumer copies a skill
+// by its own folder name into ~/.claude/skills/<name>/, so two skills sharing a
+// leaf name would collide there.
+const skillNames = {};
+for (const s of skills) {
+  if (!s.exists || !s.name) continue;
+  (skillNames[s.name] ??= []).push(s.folder);
+}
+for (const [name, folders] of Object.entries(skillNames)) {
+  if (folders.length > 1) err("skills", `duplicate skill name "${name}" in: ${folders.join(", ")} — leaf folder names must be unique`);
 }
 
 // --- Reference docs ---------------------------------------------------------

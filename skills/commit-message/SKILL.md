@@ -2,7 +2,6 @@
 name: commit-message
 description: Apply when writing a git commit message, drafting a PR title, or asked to "write a commit" — covers the conventional-commits format, subject-line rules, and writing a body that explains why over what.
 consumers:
-  - cc-plugin
   - desktop-zip
 status: active
 ---
