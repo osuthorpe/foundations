@@ -14,7 +14,7 @@ A personal, canonical home for AI assets: **prompts**, **skills**, stable **refe
 | Folder | Purpose |
 | --- | --- |
 | [`prompts/`](prompts/) | Named request templates. See [prompts/README.md](prompts/README.md). |
-| [`skills/`](skills/) | Playbooks loaded by the Claude Code plugin / Desktop zip / MCP. See [skills/README.md](skills/README.md). |
+| [`skills/`](skills/) | Playbooks you take à la carte into Claude Code / Desktop / MCP. See [skills/README.md](skills/README.md). |
 | [`reference/`](reference/) | Stable facts injected into AI context. See [reference/README.md](reference/README.md). |
 | [`rules/`](rules/) | Cursor / AGENTS-style persistent editor guidance. See [rules/README.md](rules/README.md). |
 | [`evals/`](evals/) | Shared promptfoo configuration, loaders, judges, and helpers. See [evals/README.md](evals/README.md). |
@@ -37,14 +37,14 @@ Rule of thumb: wrong or generic answer → skill; repeated request shape → pro
 
 ## Use foundations
 
-**Claude Code.** Treat this repo as a plugin marketplace:
+**Claude Code.** Take only the skills you want — copy a skill's folder into your personal or project skills directory:
 
-```text
-/plugin marketplace add osuthorpe/foundations
-/plugin install foundations@osuthorpe-foundations
+```sh
+cp -R skills/commit-message ~/.claude/skills/          # personal (all projects)
+cp -R skills/product-management/ai-trust-agency-review .claude/skills/   # one project
 ```
 
-Restart Claude Code. The plugin loads the skills in [`skills/`](skills/); they activate themselves when a task matches. Update with `/plugin marketplace update osuthorpe-foundations`.
+The skill self-activates when a task matches its description. (Skills group into `skills/<category>/<name>/` here for browsing; copy just the leaf skill folder.)
 
 **Claude Desktop / claude.ai.** Build the skill zip and upload it under **Settings → Capabilities → Skills → Upload skill**:
 

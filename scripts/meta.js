@@ -16,7 +16,6 @@ const LIST_KEYS = new Set(["arguments", "surfaces", "messages", "requires", "con
 // on.
 export const CONSUMERS = {
   cursor: "Cursor / AGENTS rules",
-  "cc-plugin": "Claude Code plugin",
   "desktop-zip": "Claude Desktop / claude.ai zip",
   mcp: "MCP server / agent",
   "context-injection": "Reference context",
@@ -180,43 +179,55 @@ ${rows}
 `;
 }
 
-// Skills live in skills/ (auto-loaded by the Claude Code plugin when they
-// declare cc-plugin). The CLI only ever scans the literal skills/ dir for
-// <name>/SKILL.md, so the directory IS the cc-plugin boundary; the frontmatter
-// `consumers` field records the full set of runtimes. readdir returns the real
-// on-disk filename, so SKILL.md vs skill.md case is detected even on
-// case-insensitive macOS.
+// Skills live in skills/ and may be organized into one level of category
+// subfolder: both a flat skills/<name>/SKILL.md and a grouped
+// skills/<category>/<name>/SKILL.md are recognized. A skill's `name` is its
+// LEAF folder name (the category is organizational only); `folder` is the full
+// path under the repo root. readdir returns the real on-disk filename, so
+// SKILL.md vs skill.md case is detected even on case-insensitive macOS.
 export function collectSkills(foundationRoot) {
-  const roots = [{ base: "skills", inPluginDir: true }];
+  const base = "skills";
+  const root = path.join(foundationRoot, base);
   const skills = [];
+  if (!fs.existsSync(root)) return skills;
   const skip = (n) => n.startsWith(".") || n.startsWith("_");
+  const isDir = (p) => fs.statSync(p).isDirectory();
 
-  for (const { base, inPluginDir } of roots) {
-    const root = path.join(foundationRoot, base);
-    if (!fs.existsSync(root)) continue;
-    for (const name of fs.readdirSync(root).sort()) {
-      if (skip(name)) continue;
-      const dir = path.join(root, name);
-      if (!fs.statSync(dir).isDirectory()) continue;
-      const skillFile = fs.readdirSync(dir).find((f) => f.toLowerCase() === "skill.md");
-      const entry = {
-        name,
-        base,
-        dir,
-        folder: `${base}/${name}`,
-        inPluginDir,
-        exists: Boolean(skillFile),
-        skillFile: skillFile ?? null,
-        isUpperCase: skillFile === "SKILL.md",
-        meta: emptyMeta(),
-        body: "",
-      };
-      if (skillFile) {
-        const parsed = parsePromptSource(fs.readFileSync(path.join(dir, skillFile), "utf-8"));
-        entry.meta = parsed.meta;
-        entry.body = parsed.body;
-      }
-      skills.push(entry);
+  const load = (name, folder, dir) => {
+    const skillFile = isDir(dir) ? fs.readdirSync(dir).find((f) => f.toLowerCase() === "skill.md") : null;
+    const entry = {
+      name,
+      folder,
+      dir,
+      exists: Boolean(skillFile),
+      skillFile: skillFile ?? null,
+      isUpperCase: skillFile === "SKILL.md",
+      meta: emptyMeta(),
+      body: "",
+    };
+    if (skillFile) {
+      const parsed = parsePromptSource(fs.readFileSync(path.join(dir, skillFile), "utf-8"));
+      entry.meta = parsed.meta;
+      entry.body = parsed.body;
+    }
+    return entry;
+  };
+
+  for (const top of fs.readdirSync(root).sort()) {
+    if (skip(top)) continue;
+    const topDir = path.join(root, top);
+    if (!isDir(topDir)) continue; // skip files like README.md
+    // A folder holding a SKILL.md is a flat skill; otherwise it's a category
+    // whose immediate children are skills.
+    if (fs.readdirSync(topDir).some((f) => f.toLowerCase() === "skill.md")) {
+      skills.push(load(top, `${base}/${top}`, topDir));
+      continue;
+    }
+    for (const leaf of fs.readdirSync(topDir).sort()) {
+      if (skip(leaf)) continue;
+      const leafDir = path.join(topDir, leaf);
+      if (!isDir(leafDir)) continue;
+      skills.push(load(leaf, `${base}/${top}/${leaf}`, leafDir));
     }
   }
   return skills;
@@ -324,9 +335,8 @@ ${byConsumer(key)}
 
 Each asset declares a \`consumers\` list in its frontmatter — the closed set of
 runtimes that package or serve it. This map groups every asset by consumer so
-you can see what each runtime ships. The list is authoritative: the Claude Code
-plugin loads exactly the \`skills/\` tree, the Desktop packager and MCP loaders
-filter on \`consumers\`.
+you can see what each runtime ships. The list is authoritative: the Desktop
+packager and MCP loaders filter on \`consumers\`.
 
 ${Object.keys(CONSUMERS).map(section).join("\n")}`;
 }

@@ -4,22 +4,28 @@ A skill is a self-contained folder of instructions written **for the AI**, plus 
 
 [`commit-message/`](commit-message/SKILL.md) is a complete working example — copy its shape.
 
-## Where skills run
+## How skills are used
 
-Skills live in `skills/` and declare where they ship via `consumers`:
+Skills are consumed **à la carte** — take only the ones you want, not the whole repo:
+
+- **Claude Code / Desktop / project:** copy a skill's folder into `~/.claude/skills/<name>/` (personal) or `.claude/skills/<name>/` (a project). It self-activates when a task matches its description.
+- **Claude Desktop / claude.ai:** build its uploadable zip with `make package` (every skill whose `consumers` includes `desktop-zip`).
+- **MCP server / agent:** served as a resource when `consumers` includes `mcp`.
 
 | Consumer | Reaches |
 | --- | --- |
-| `cc-plugin` | the Claude Code plugin (loaded from this repo's `skills/` tree) |
 | `desktop-zip` | the Claude Desktop / claude.ai skill zip (`make package`) |
 | `mcp` | an MCP server / agent that serves skills as resources |
 
-The Claude Code CLI only ever scans the literal `skills/` directory and loads every `SKILL.md` it finds there — it cannot filter. So **anything in `skills/` must declare `cc-plugin`**, and `npm run check` enforces it. The `consumers` list is the machine-readable record of where each skill goes; see the generated [ASSETS.md](../ASSETS.md) for the full distribution map.
+The `consumers` list is the machine-readable record of where each skill goes; see the generated [ASSETS.md](../ASSETS.md) for the full distribution map.
 
 ## Anatomy
 
+Skills may be **grouped into a category** one level deep to keep the tree navigable. Both layouts are valid; a skill's `name` is always its **leaf** folder name (the category is organizational only):
+
 ```text
-skills/<name>/
+skills/<name>/                       # flat
+skills/<category>/<name>/            # grouped (e.g. product-management/ai-trust-agency-review)
   SKILL.md                 # the AI instructions + frontmatter (always uppercase)
   README.md                # explanation for humans
   promptfooconfig.yaml     # the eval that proves the skill helps
@@ -30,9 +36,9 @@ skills/<name>/
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Must equal the folder name |
+| `name` | Must equal the **leaf** folder name; unique across categories |
 | `description` | The trigger — *what* it does and *when* to use it (the line the AI always sees) |
-| `consumers` | Where it ships: `cc-plugin`, `desktop-zip`, `mcp` (one or more) |
+| `consumers` | Where it ships: `desktop-zip`, `mcp` (one or more) |
 | `status` | `proposed` / `active` / `deprecated` |
 
 ## What makes a good skill
@@ -46,9 +52,9 @@ skills/<name>/
 
 ## Add a skill
 
-1. Create `skills/<name>/SKILL.md` (uppercase) with the frontmatter above and any data it needs, plus a `README.md`.
-2. Set `consumers` — `[cc-plugin, desktop-zip]` is the common default for an engineering skill. `npm run check` rejects a `skills/` skill that doesn't declare `cc-plugin`.
-3. Add a `promptfooconfig.yaml` that proves the skill earns its place. Knowledge skills are graded with and without the skill; tool-routing skills are checked for picking the right tool and arguments. See [../evals/README.md](../evals/README.md).
+1. Create `skills/<name>/SKILL.md` (or `skills/<category>/<name>/SKILL.md`, uppercase) with the frontmatter above and any data it needs, plus a `README.md`.
+2. Set `consumers` — `[desktop-zip]` is the common default; add `mcp` if an agent serves it.
+3. Add a `promptfooconfig.yaml` that proves the skill earns its place. Knowledge skills are graded with and without the skill; tool-routing skills are checked for picking the right tool and arguments. See [../evals/README.md](../evals/README.md). (A grouped skill sits one level deeper, so its config references shared eval files as `file://../../../evals/...`.)
 4. Run `npm run index` (refreshes [ASSETS.md](../ASSETS.md)) then `npm run check`.
 
 A good candidate is expertise you repeat: a convention you keep restating, which tool to use for a job, what makes a strong result. If you have pasted the same context into the AI twice, capture it as a skill.

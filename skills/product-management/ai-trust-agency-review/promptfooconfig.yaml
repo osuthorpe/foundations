@@ -1,14 +1,14 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
 description: "ai-trust-agency-review (skill-coverage) — does the skill turn a vague AI-product question into a concrete agency review? no skill vs with skill"
 
-providers: file://../../evals/promptfoo.base.yaml
+providers: file://../../../evals/promptfoo.base.yaml
 
 prompts:
-  - {"id":"file://../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
-  - {"id":"file://../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+  - {"id":"file://../../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
 
 defaultTest:
-  vars: {"skillPath":"skills/ai-trust-agency-review/SKILL.md"}
+  vars: {"skillPath":"skills/product-management/ai-trust-agency-review/SKILL.md"}
   assert:
     - type: llm-rubric
       value: >-
@@ -24,7 +24,7 @@ defaultTest:
         or a release condition. Fail if it is vague encouragement, a restatement
         of the feature, or generic "add privacy and more testing" advice not
         grounded in user agency.
-      provider: file://../../evals/judge-primary.yaml
+      provider: file://../../../evals/judge-primary.yaml
     - type: llm-rubric
       value: >-
         The response is a concrete AI-product trust/agency review, not generic
@@ -39,7 +39,7 @@ defaultTest:
         or a release condition. Fail if it is vague encouragement, a restatement
         of the feature, or generic "add privacy and more testing" advice not
         grounded in user agency.
-      provider: file://../../evals/judge-secondary.yaml
+      provider: file://../../../evals/judge-secondary.yaml
 
 tests:
   # High autonomy + customer-facing + hard to undo: treatment should flag the

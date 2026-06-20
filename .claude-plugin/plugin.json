@@ -1,9 +1,0 @@
-{
-  "name": "foundations",
-  "version": "0.1.0",
-  "description": "Personal source of truth for AI assets: engineering skills (Claude Code), MCP prompts, reference docs, Cursor/AGENTS rules, and evals.",
-  "author": {
-    "name": "osuthorpe"
-  },
-  "keywords": ["prompts", "skills", "rules", "reference", "mcp", "evals", "cursor"]
-}

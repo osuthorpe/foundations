@@ -14,6 +14,6 @@ skills/<name>/
   promptfooconfig.yaml  # the eval proving the skill beats a no-skill baseline
 ```
 
-`consumers: [cc-plugin, desktop-zip]` is what routes it into both runtimes; the
-directory (`skills/`) is what the Claude Code CLI actually scans. See
-[../README.md](../README.md) for the full convention.
+`consumers: [desktop-zip]` is what routes it into the Desktop / claude.ai zip
+(`make package`). To use it in Claude Code, copy this folder into
+`~/.claude/skills/`. See [../README.md](../README.md) for the full convention.
