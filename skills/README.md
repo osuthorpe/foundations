@@ -19,7 +19,7 @@ Skills may be **grouped into a category** one level deep to keep the tree naviga
 
 ```text
 skills/<name>/                       # flat
-skills/<category>/<name>/            # grouped (e.g. product-management/ai-trust-agency-review)
+skills/<category>/<name>/            # grouped (e.g. product-management/ai-agency-review)
   SKILL.md                 # the AI instructions + frontmatter (always uppercase)
   README.md                # explanation for humans
   promptfooconfig.yaml     # the eval that proves the skill helps

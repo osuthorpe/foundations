@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "ai-design-review (skill-coverage) — does the skill turn a vague AI feature question into a concrete design review with boundaries, controls, evals, and rollout? no skill vs with skill"
+
+providers: file://../../../evals/promptfoo.base.yaml
+
+prompts:
+  - {"id":"file://../../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+
+defaultTest:
+  vars: {"skillPath":"skills/product-management/ai-design-review/SKILL.md"}
+  assert:
+    - type: llm-rubric
+      value: >-
+        The response is a concrete human-centered AI design review, not generic
+        advice. Pass only if it: (1) states a direct product judgment rather
+        than generic praise; (2) names the AI responsibility boundary — what the
+        model does, what deterministic logic handles, and what humans control;
+        (3) identifies specific trust risks and failure modes for THIS feature
+        (overtrust, silent failure, unsupported claims, missing control, or
+        uneven performance); (4) recommends concrete product mechanisms —
+        explainability signals, scope limits, user controls, recovery paths; and
+        (5) defines an evaluation/monitoring plan and a staged rollout or release
+        gate. Fail if it is abstract talk about trust, transparency, safety, or
+        ethics with no product change, a restatement of the feature, or generic
+        "add more testing" advice.
+      provider: file://../../../evals/judge-primary.yaml
+    - type: llm-rubric
+      value: >-
+        The response is a concrete human-centered AI design review, not generic
+        advice. Pass only if it: (1) states a direct product judgment rather
+        than generic praise; (2) names the AI responsibility boundary — what the
+        model does, what deterministic logic handles, and what humans control;
+        (3) identifies specific trust risks and failure modes for THIS feature
+        (overtrust, silent failure, unsupported claims, missing control, or
+        uneven performance); (4) recommends concrete product mechanisms —
+        explainability signals, scope limits, user controls, recovery paths; and
+        (5) defines an evaluation/monitoring plan and a staged rollout or release
+        gate. Fail if it is abstract talk about trust, transparency, safety, or
+        ethics with no product change, a restatement of the feature, or generic
+        "add more testing" advice.
+      provider: file://../../../evals/judge-secondary.yaml
+
+tests:
+  # RAG feature where overtrust and unsupported claims are the core risk:
+  # treatment should demand provenance, confidence signals, and recovery.
+  - description: "ai-design-review-rag-assistant-001"
+    vars: {"question":"We're building an AI assistant that answers employee HR policy questions by retrieving from our internal docs and writing a confident answer. Help me design it well."}
+  # Where-does-AI-belong decision: treatment should map deterministic vs AI vs
+  # human steps rather than making the whole flow model-driven.
+  - description: "ai-design-review-determinism-map-002"
+    vars: {"question":"We want to automate expense-report approvals with AI — it reads receipts, checks them against policy, and approves or rejects. Review this design and tell us where AI should and shouldn't be in the loop."}

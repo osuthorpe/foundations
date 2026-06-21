@@ -1,14 +1,23 @@
 ---
-name: ai-trust-agency-review
-description: Review AI product ideas, PRDs, feature specs, launch plans, agent workflows, trust claims, or blog drafts for user agency, control, proof, recourse, displacement risk, autonomy level, failure handling, and trust release readiness. Use when the user asks for an AI trust review, agency review, release gate, product critique, PRD critique, or whether an AI feature should ship.
+name: ai-agency-review
+description: Pressure-test an AI feature from the user's point of view — control, proof, recourse, displacement risk, autonomy level, hidden work, and whether users keep meaningful authority. Use when the user asks whether people will trust or accept an AI feature, or for an agency or trust critique of a product idea, PRD, agent workflow, launch plan, or blog draft.
 status: proposed
 ---
 
-# AI Trust Agency Review
+# AI Agency Review
 
 ## Purpose
 
-Use this skill to review AI product work through the trust and agency framework from "People Don't Fear AI. They Fear Losing Agency."
+Use this skill to review AI product work through the trust and agency framework from "People Don't Fear AI. They Fear Losing Agency." It judges the feature from the user's point of view: do people keep meaningful authority, and does the feature earn the reliance it invites?
+
+## Related Skills
+
+This is one of three complementary product-management lenses. Reach for the others when the question shifts:
+
+- `ai-design-review` — how to build the feature well: where AI belongs versus deterministic logic, explainability, evaluation, and failure recovery.
+- `ai-stewardship-review` — the ship / do-not-ship governance call at the release gate, including broader harms and project stewardship docs.
+
+Use this skill to judge whether users keep agency and trust. It is the user's-eye view, not the build guide or the governance gate.
 
 ## Core Standard
 

@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: "ai-trust-agency-review (skill-coverage) — does the skill turn a vague AI-product question into a concrete agency review? no skill vs with skill"
+description: "ai-agency-review (skill-coverage) — does the skill turn a vague AI-product question into a concrete user-agency review? no skill vs with skill"
 
 providers: file://../../../evals/promptfoo.base.yaml
 
@@ -8,7 +8,7 @@ prompts:
   - {"id":"file://../../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
 
 defaultTest:
-  vars: {"skillPath":"skills/product-management/ai-trust-agency-review/SKILL.md"}
+  vars: {"skillPath":"skills/product-management/ai-agency-review/SKILL.md"}
   assert:
     - type: llm-rubric
       value: >-
@@ -44,9 +44,9 @@ defaultTest:
 tests:
   # High autonomy + customer-facing + hard to undo: treatment should flag the
   # autonomy level, the missing human review, and demand control/recourse.
-  - description: "ai-trust-agency-review-autoclose-001"
+  - description: "ai-agency-review-autoclose-001"
     vars: {"question":"Review this feature: our support tool will let the AI automatically reply to and close customer tickets it is confident about, with no agent reviewing first. Should we ship it?"}
   # PRD critique where the AI acts on the user's behalf inside their inbox:
   # treatment should name the fear, check proof/recourse, and surface hidden work.
-  - description: "ai-trust-agency-review-inbox-prd-002"
+  - description: "ai-agency-review-inbox-prd-002"
     vars: {"question":"Here is a PRD: an AI agent reads each employee's inbox and, on their behalf, auto-archives or replies to email it judges low-priority. Give me a product review and tell me whether it is ready to launch."}

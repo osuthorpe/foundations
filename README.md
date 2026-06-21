@@ -38,7 +38,7 @@ Take only what you want — nothing here is all-or-nothing.
 
 ```sh
 cp -R skills/commit-message ~/.claude/skills/                          # personal (all projects)
-cp -R skills/product-management/ai-trust-agency-review .claude/skills/  # one project
+cp -R skills/product-management/ai-agency-review .claude/skills/  # one project
 ```
 
 (Skills are grouped into `skills/<category>/<name>/` here for browsing — copy just the leaf skill folder.)

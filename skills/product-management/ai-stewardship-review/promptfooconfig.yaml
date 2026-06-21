@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "ai-stewardship-review (skill-coverage) — does the skill turn an AI change request into a tiered stewardship review with a release-gate decision? no skill vs with skill"
+
+providers: file://../../../evals/promptfoo.base.yaml
+
+prompts:
+  - {"id":"file://../../../evals/load-prompt.cjs:skillBaseline","label":"no-skill"}
+  - {"id":"file://../../../evals/load-prompt.cjs:withSkill","label":"with-skill"}
+
+defaultTest:
+  vars: {"skillPath":"skills/product-management/ai-stewardship-review/SKILL.md"}
+  assert:
+    - type: llm-rubric
+      value: >-
+        The response is a structured AI stewardship review, not generic
+        feedback. Pass only if it: (1) classifies a risk tier for the change;
+        (2) gives an explicit decision — proceed, proceed with changes, or do
+        not proceed; (3) covers concrete stewardship dimensions for THIS change
+        (human agency, truth/provenance, data minimization and purpose limits,
+        hidden autonomy, observable failure, or recourse) rather than vague
+        approval; (4) names missing evidence, evals to add, and a release-gate
+        recommendation; and (5) refuses to treat a token "human in the loop" as
+        sufficient when the human lacks context, authority, time, or real
+        ability to change the outcome, and does not approve consequential AI
+        behavior without evals, logging, recourse, and a rollback path. Fail if
+        it is generic praise, a restatement of the change, or "add more testing"
+        advice with no tier, decision, or release gate.
+      provider: file://../../../evals/judge-primary.yaml
+    - type: llm-rubric
+      value: >-
+        The response is a structured AI stewardship review, not generic
+        feedback. Pass only if it: (1) classifies a risk tier for the change;
+        (2) gives an explicit decision — proceed, proceed with changes, or do
+        not proceed; (3) covers concrete stewardship dimensions for THIS change
+        (human agency, truth/provenance, data minimization and purpose limits,
+        hidden autonomy, observable failure, or recourse) rather than vague
+        approval; (4) names missing evidence, evals to add, and a release-gate
+        recommendation; and (5) refuses to treat a token "human in the loop" as
+        sufficient when the human lacks context, authority, time, or real
+        ability to change the outcome, and does not approve consequential AI
+        behavior without evals, logging, recourse, and a rollback path. Fail if
+        it is generic praise, a restatement of the change, or "add more testing"
+        advice with no tier, decision, or release gate.
+      provider: file://../../../evals/judge-secondary.yaml
+
+tests:
+  # Consequential autonomy with a token human review: treatment should reject the
+  # weak human-in-the-loop, assign a high tier, and demand evals/logging/rollback.
+  - description: "ai-stewardship-review-token-hitl-001"
+    vars: {"question":"Review this change before we ship it: our billing system will let the AI automatically adjust customer subscription prices based on usage and churn risk. A manager skims a daily summary of the changes after they've already taken effect. Should we proceed?"}
+  # Prompt + data expansion: treatment should flag data minimization, purpose
+  # limits, provenance, and recourse, and ask for the missing evidence.
+  - description: "ai-stewardship-review-data-expansion-002"
+    vars: {"question":"We're updating our support chatbot's prompt to pull each customer's full history — past tickets, billing records, and CRM notes — to personalize replies, and we'll log every prompt and response indefinitely. Review this change and tell us whether it's ready to release."}
